@@ -1,0 +1,11 @@
+{
+  "name": "hellyeah",
+  "version": "0.1.0",
+  "description": "Self-evolving application connected to Antigravity",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "bridge": "node bridge-wait.js"
+  }
+}

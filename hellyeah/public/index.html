@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="atelier-dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="hellyeah" />
+  <meta name="theme-color" content="#0f1115" />
+  <title>hellyeah — Self-Evolving Application Studio</title>
+  <meta name="description" content="A self-evolving application workspace linked to Antigravity. Type what you want in the chat or pick a suggestion to mutate the live app." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div id="app-shell" class="app-shell mode-genesis">
+    <!-- Top Studio Header -->
+    <header id="studio-header" class="studio-header">
+      <div class="brand-cluster">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div class="brand-titles">
+          <h1 id="app-title" class="app-title">hellyeah</h1>
+          <span id="stage-subtitle" class="stage-subtitle">Genesis Seed</span>
+        </div>
+        <span id="version-badge" class="mono-tag">v0.1.0</span>
+        <span id="mutation-counter" class="mono-tag subtle">0 mutations</span>
+      </div>
+
+      <nav class="studio-controls" aria-label="Workspace controls">
+        <div id="agent-connection-indicator" class="connection-status" role="status" aria-live="polite">
+          <span id="status-dot" class="status-dot connected"></span>
+          <span id="status-label" class="status-label">Linked to Antigravity</span>
+        </div>
+
+        <button id="toggle-inspector-btn" class="header-action-btn" type="button" title="Inspect live source files and evolution changelog">
+          <span>Source &amp; Log</span>
+        </button>
+
+        <button id="toggle-theme-btn" class="header-action-btn" type="button" title="Toggle studio color theme">
+          <span id="theme-btn-label">Paper Mode</span>
+        </button>
+      </nav>
+    </header>
+
+    <!-- Main Evolving Workspace -->
+    <main id="workspace-main" class="workspace-main">
+      <!-- Dynamic Stage: Hidden/compact in pure Genesis until first evolution or when modules exist -->
+      <section id="live-stage-panel" class="live-stage-panel" aria-label="Evolved application stage">
+        <div class="stage-toolbar">
+          <div class="stage-toolbar-left">
+            <span class="section-eyebrow">LIVE APPLICATION STAGE</span>
+            <h2 id="active-stage-heading" class="stage-heading">Genesis Canvas</h2>
+          </div>
+          <div class="stage-toolbar-right">
+            <button id="reset-stage-btn" class="ghost-btn" type="button">Reset to Genesis</button>
+          </div>
+        </div>
+
+        <div id="modules-container" class="modules-container">
+          <!-- Populated dynamically as the app evolves -->
+        </div>
+      </section>
+
+      <!-- Antigravity Chat & Evolution Suggestions Interface -->
+      <aside id="antigravity-console" class="antigravity-console" aria-label="Antigravity Evolution Chat">
+        <div class="console-header">
+          <div class="console-header-info">
+            <span class="section-eyebrow">ANTIGRAVITY DIRECT LINK</span>
+            <h2 class="console-title">Evolution Console</h2>
+          </div>
+          <span class="workspace-path-tag" title="Live file path on VM">/home/antigravity/hellyeah</span>
+        </div>
+
+        <!-- Chat Message Stream -->
+        <div id="chat-messages" class="chat-messages" role="log" aria-live="polite">
+          <!-- Messages rendered dynamically -->
+        </div>
+
+        <!-- Proactive Suggestions Tray -->
+        <section id="suggestions-tray" class="suggestions-tray" aria-label="Suggested evolutions">
+          <div class="suggestions-header">
+            <span class="suggestions-label">Suggested Evolutions</span>
+            <button id="shuffle-suggestions-btn" class="text-link-btn" type="button">Refresh ideas</button>
+          </div>
+          <div id="suggestions-list" class="suggestions-list">
+            <!-- Suggestion cards rendered dynamically -->
+          </div>
+        </section>
+
+        <!-- Prompt Input Form -->
+        <form id="chat-form" class="chat-form" autocomplete="off">
+          <div class="input-wrapper">
+            <textarea
+              id="chat-input"
+              class="chat-input"
+              rows="2"
+              placeholder="Tell hellyeah how to evolve next... (Press Enter to mutate)"
+              aria-label="Evolution prompt for Antigravity"
+              required
+            ></textarea>
+            <div class="input-footer">
+              <span id="mutation-hint" class="mutation-hint">Writes directly to /home/antigravity/hellyeah &bull; Live SSE sync</span>
+              <button id="send-prompt-btn" class="send-prompt-btn" type="submit">
+                <span id="send-btn-text">Evolve App</span>
+              </button>
+            </div>
+          </div>
+        </form>
+      </aside>
+    </main>
+
+    <!-- Slide-over Drawer: Live Source Files & Evolution Changelog -->
+    <aside id="inspector-drawer" class="inspector-drawer hidden" aria-label="Live Source and Evolution Log">
+      <div class="drawer-header">
+        <div>
+          <span class="section-eyebrow">SELF-INSPECTION</span>
+          <h2 class="drawer-title">Workspace Files &amp; Mutation History</h2>
+        </div>
+        <button id="close-inspector-btn" class="ghost-btn" type="button">Close</button>
+      </div>
+
+      <div class="drawer-content">
+        <section class="drawer-section">
+          <h3 class="drawer-subtitle">Evolution Changelog</h3>
+          <div id="changelog-list" class="changelog-list"></div>
+        </section>
+
+        <section class="drawer-section">
+          <h3 class="drawer-subtitle">Live Files in <code>/home/antigravity/hellyeah</code></h3>
+          <div id="file-tabs" class="file-tabs"></div>
+          <pre id="file-code-preview" class="file-code-preview"><code>Loading workspace files...</code></pre>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

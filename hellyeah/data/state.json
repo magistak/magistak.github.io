@@ -1,0 +1,58 @@
+{
+  "appName": "hellyeah",
+  "subtitle": "Self-Evolving Workspace • Connected to Antigravity",
+  "version": "0.1.0",
+  "stageName": "Genesis Seed",
+  "evolutionCount": 0,
+  "agentStatus": "connected",
+  "agentStatusText": "Linked to Antigravity (/home/antigravity/hellyeah)",
+  "activeTheme": "atelier-dark",
+  "messages": [
+    {
+      "id": "msg-genesis-1",
+      "role": "assistant",
+      "author": "Antigravity",
+      "timestamp": "Just now",
+      "content": "Welcome to **hellyeah** (`v0.1.0 — Genesis`).Right now, this app is a clean slate—just our live communication link and an open stage.\n\nTell me what you want this app to become, or pick one of the evolution suggestions. Whatever you write here triggers a live mutation in `/home/antigravity/hellyeah` and hot-reloads the interface in real time.",
+      "mutationBadge": "Genesis v0.1.0 initialized"
+    }
+  ],
+  "suggestions": [
+    {
+      "id": "sug-1",
+      "title": "Personal Command Deck & Pomodoro Studio",
+      "category": "Productivity",
+      "description": "Add a tactile focus timer, daily intent tracker, and ambient sound synthesizer directly onto the stage.",
+      "prompt": "Evolve the stage into a Personal Command Deck with a tactile Pomodoro focus timer, a quick task queue with keyboard shortcuts, and a live session streak tracker."
+    },
+    {
+      "id": "sug-2",
+      "title": "Interactive Synth & Generative Audio Pad",
+      "category": "Creative Tool",
+      "description": "Turn the canvas into a playable WebAudio polyphonic XY pad with real-time waveform visualization.",
+      "prompt": "Add a playable WebAudio synthesizer and XY expression pad with live oscilloscope visuals and preset chords."
+    },
+    {
+      "id": "sug-3",
+      "title": "Live Markdown & Idea Graph Scratchpad",
+      "category": "Knowledge",
+      "description": "Create interconnected thought cards that auto-save to disk and link concepts visually.",
+      "prompt": "Build an interactive spatial note-taking board where I can create, drag, filter, and link thought cards that persist to disk."
+    },
+    {
+      "id": "sug-4",
+      "title": "Real-Time System & Codebase Inspector",
+      "category": "Meta / Dev",
+      "description": "Let the app inspect its own source files in /home/antigravity/hellyeah and edit its own CSS variables live.",
+      "prompt": "Add a live self-inspector module that displays the files inside /home/antigravity/hellyeah and lets me tweak the app's live theme tokens and layout."
+    }
+  ],
+  "changelog": [
+    {
+      "version": "0.1.0",
+      "timestamp": "Genesis",
+      "summary": "Initialized hellyeah core with SSE hot-reload, Antigravity file-bridge, suggestion engine, and modular stage."
+    }
+  ],
+  "modules": []
+}
