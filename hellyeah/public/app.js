@@ -1032,5 +1032,16 @@
       poolIndex += 1;
       updateServerState({ suggestions: nextPool });
     });
+
+    const toggleHistoryBtn = document.getElementById('toggle-chat-history-btn');
+    if (toggleHistoryBtn) {
+      toggleHistoryBtn.addEventListener('click', () => {
+        const msgBox = document.getElementById('chat-messages');
+        if (msgBox) {
+          const isCollapsed = msgBox.classList.toggle('collapsed');
+          toggleHistoryBtn.textContent = isCollapsed ? 'Show Chat History' : 'Hide Chat History';
+        }
+      });
+    }
   });
 })();

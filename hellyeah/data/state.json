@@ -1,70 +1,82 @@
 {
   "appName": "hellyeah",
-  "subtitle": "Self-Evolving Workspace • Connected to Antigravity",
-  "version": "0.2.0",
-  "codeVersion": "0.2.0",
-  "cloudRevision": 2,
-  "stageName": "Chat-First Top Console",
-  "evolutionCount": 1,
+  "subtitle": "Mobile-First Evolving Studio • Connected to Antigravity",
+  "version": "0.3.0",
+  "codeVersion": "0.3.0",
+  "cloudRevision": 3,
+  "stageName": "Mobile-First Studio",
+  "evolutionCount": 2,
   "agentStatus": "connected",
-  "agentStatusText": "Antigravity Bridge (Auto)",
+  "agentStatusText": "Bridge: Auto",
   "activeTheme": "atelier-dark",
   "messages": [
     {
-      "id": "msg-genesis-1",
-      "role": "assistant",
-      "author": "Antigravity",
-      "timestamp": "Genesis",
-      "content": "Welcome to **hellyeah** (`v0.1.0 — Genesis`). Tell me what you want this app to become, or pick one of the evolution suggestions.",
-      "mutationBadge": "Genesis v0.1.0 initialized"
-    },
-    {
       "id": "msg-issue-1-user",
       "role": "user",
-      "author": "You (via iPhone Bridge #1)",
-      "timestamp": "Just now",
+      "author": "You (via iPhone #1)",
+      "timestamp": "Earlier",
       "content": "Move chat window to the top"
     },
     {
       "id": "msg-issue-1-ag",
       "role": "assistant",
       "author": "Antigravity",
+      "timestamp": "Earlier",
+      "content": "Moved the Evolution Chat Console (`#antigravity-console`) to the top of the workspace (`v0.2.0`).",
+      "mutationBadge": "v0.2.0 • Chat Docked at Top (#1)"
+    },
+    {
+      "id": "msg-issue-2-user",
+      "role": "user",
+      "author": "You (via iPhone #2)",
       "timestamp": "Just now",
-      "content": "Received your iPhone prompt (`Issue #1`) and evolved **hellyeah** to `v0.2.0`:\n\n- **Moved the Evolution Chat Console (`#antigravity-console`) to the very top** of the workspace (`index.html` & `style.css`), directly above the Live Application Stage in all modes (`mode-genesis` and `mode-evolved`).\n- Placed the **Prompt Input Box** and **Suggested Evolutions** right in the top console so they are immediately accessible on your iPhone without scrolling.",
-      "mutationBadge": "v0.2.0 • Moved Chat Window to Top (#1)"
+      "content": "make the interface mobile friendly"
+    },
+    {
+      "id": "msg-issue-2-ag",
+      "role": "assistant",
+      "author": "Antigravity",
+      "timestamp": "Just now",
+      "content": "Received **Issue #2** from your iPhone and redesigned **hellyeah** (`v0.3.0`) for native iPhone ergonomics:\n\n- **Single-Row Sticky iOS Header**: Compact frosted-glass top bar with thumb-friendly `Bridge`, `Log`, and `Theme` pills.\n- **Inline iOS Composer Bar**: Sleek 1-row prompt input (`16px` no-zoom) with an inline **Evolve** button right at the top.\n- **Swipeable Suggestions Carousel**: Replaced the tall stacked grid with a horizontal touch-swipeable pill carousel (`scroll-snap-type: x mandatory`).\n- **Collapsible Chat History**: Added a **Chat History** toggle so you can collapse messages whenever you want maximum stage space.",
+      "mutationBadge": "v0.3.0 • Mobile-First Redesign (#2)"
     }
   ],
   "suggestions": [
     {
       "id": "sug-1",
-      "title": "Personal Command Deck & Pomodoro Studio",
-      "category": "Productivity",
-      "description": "Add a tactile focus timer and daily intent queue directly below the top chat window.",
+      "title": "Pomodoro & Focus Deck",
+      "category": "Focus",
+      "description": "Tactile timer & task queue optimized for iPhone.",
       "prompt": "Evolve the stage into a Personal Command Deck with a tactile Pomodoro focus timer and task queue."
     },
     {
       "id": "sug-2",
-      "title": "Interactive Synth & Touch XY Audio Pad",
-      "category": "Creative Tool",
-      "description": "Add a playable WebAudio polyphonic XY pad with iPhone touch expression below the chat.",
+      "title": "Touch XY Audio Synth",
+      "category": "Audio",
+      "description": "Playable WebAudio synth pad with multi-touch chords.",
       "prompt": "Add a playable WebAudio synthesizer and XY expression pad with preset chords."
     },
     {
       "id": "sug-3",
-      "title": "Collapsible Compact Chat Mode",
-      "category": "UI Layout",
-      "description": "Add a 1-tap toggle to collapse/expand the chat history and suggestions tray on iPhone.",
-      "prompt": "Add a 1-tap collapse/expand toggle to the top chat window so I can minimize chat history when using the stage."
+      "title": "Bottom Tab Navigation Bar",
+      "category": "iOS UX",
+      "description": "Add a native iOS bottom tab bar to switch between Stage, Chat, and Log.",
+      "prompt": "Add a sticky iOS bottom tab bar to switch cleanly between Chat, Stage, and Code Log."
     },
     {
       "id": "sug-4",
-      "title": "Live Markdown & Idea Graph Scratchpad",
-      "category": "Knowledge",
-      "description": "Create interconnected thought cards that persist on your device.",
+      "title": "Quick Voice / Note Cards",
+      "category": "Notes",
+      "description": "Capture spatial thought cards that persist on your phone.",
       "prompt": "Build an interactive spatial note-taking board where I can create and link thought cards."
     }
   ],
   "changelog": [
+    {
+      "version": "0.3.0",
+      "timestamp": "Issue #2",
+      "summary": "Mobile-first redesign: single-row sticky frosted header, inline iOS composer bar, horizontal swipeable suggestions carousel, and 42px+ touch targets."
+    },
     {
       "version": "0.2.0",
       "timestamp": "Issue #1",

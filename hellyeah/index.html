@@ -2,106 +2,97 @@
 <html lang="en" data-theme="atelier-dark">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="hellyeah" />
   <meta name="theme-color" content="#0f1115" />
   <title>hellyeah — Self-Evolving Application Studio</title>
-  <meta name="description" content="A self-evolving application workspace linked to Antigravity. Type what you want in the chat or pick a suggestion to mutate the live app." />
+  <meta name="description" content="A mobile-first self-evolving application workspace linked to Antigravity. Type what you want in the chat or tap a suggestion to mutate the live app." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link id="main-stylesheet" rel="stylesheet" href="./style.css?v=0.2.0" />
+  <link id="main-stylesheet" rel="stylesheet" href="./style.css?v=0.3.0" />
 </head>
 <body>
   <div id="app-shell" class="app-shell mode-genesis">
-    <!-- Top Studio Header -->
+    <!-- Compact Mobile-First Studio Header -->
     <header id="studio-header" class="studio-header">
       <div class="brand-cluster">
         <span class="brand-mark" aria-hidden="true"></span>
-        <div class="brand-titles">
-          <h1 id="app-title" class="app-title">hellyeah</h1>
-          <span id="stage-subtitle" class="stage-subtitle">Chat-First Top Console</span>
-        </div>
-        <span id="version-badge" class="mono-tag">v0.2.0</span>
-        <span id="mutation-counter" class="mono-tag subtle">1 mutation</span>
+        <h1 id="app-title" class="app-title">hellyeah</h1>
+        <span id="version-badge" class="mono-tag">v0.3.0</span>
+        <span id="mutation-counter" class="mono-tag subtle hide-xs">2 mutations</span>
+        <span id="stage-subtitle" class="stage-subtitle hide-mobile">Mobile-First Studio</span>
       </div>
 
       <nav class="studio-controls" aria-label="Workspace controls">
         <button id="open-bridge-btn" class="connection-status" type="button" title="Configure live GitHub Bridge to Antigravity VM">
           <span id="status-dot" class="status-dot connected"></span>
-          <span id="status-label" class="status-label">Antigravity Bridge</span>
+          <span id="status-label" class="status-label">Bridge</span>
         </button>
 
         <button id="toggle-inspector-btn" class="header-action-btn" type="button" title="Inspect live source files and evolution changelog">
-          <span>Source &amp; Log</span>
+          <span>Log</span>
         </button>
 
         <button id="toggle-theme-btn" class="header-action-btn" type="button" title="Toggle studio color theme">
-          <span id="theme-btn-label">Paper Mode</span>
+          <span id="theme-btn-label">Theme</span>
         </button>
       </nav>
     </header>
 
-    <!-- Main Evolving Workspace (Chat Window Docked at the Top) -->
+    <!-- Main Evolving Workspace (Mobile-First Top Chat + Stage Below) -->
     <main id="workspace-main" class="workspace-main chat-at-top">
       <!-- Antigravity Chat & Evolution Suggestions Interface (TOP) -->
       <section id="antigravity-console" class="antigravity-console" aria-label="Antigravity Evolution Chat">
-        <div class="console-header">
-          <div class="console-header-info">
-            <span class="section-eyebrow">ANTIGRAVITY DIRECT LINK &bull; TOP CONSOLE</span>
-            <h2 class="console-title">Evolution Chat Console</h2>
-          </div>
-          <span class="workspace-path-tag" title="Live file path on VM">Top-Docked &bull; v0.2.0</span>
-        </div>
-
-        <!-- Chat Message Stream -->
-        <div id="chat-messages" class="chat-messages" role="log" aria-live="polite">
-          <!-- Messages rendered dynamically -->
-        </div>
-
-        <!-- Prompt Input Form -->
+        <!-- Sleek Mobile Composer Bar at the Very Top -->
         <form id="chat-form" class="chat-form" autocomplete="off">
-          <div class="input-wrapper">
+          <div class="composer-bar">
             <textarea
               id="chat-input"
               class="chat-input"
-              rows="2"
-              placeholder="Tell hellyeah how to evolve next... (Press Enter to mutate)"
+              rows="1"
+              placeholder="Tell hellyeah how to evolve..."
               aria-label="Evolution prompt for Antigravity"
               required
             ></textarea>
-            <div class="input-footer">
-              <span id="mutation-hint" class="mutation-hint">Connected to Antigravity via GitHub Bridge</span>
-              <button id="send-prompt-btn" class="send-prompt-btn" type="submit">
-                <span id="send-btn-text">Evolve App</span>
-              </button>
-            </div>
+            <button id="send-prompt-btn" class="send-prompt-btn" type="submit">
+              <span id="send-btn-text">Evolve</span>
+            </button>
+          </div>
+          <div class="composer-meta-row">
+            <span id="mutation-hint" class="mutation-hint">Live iPhone &rarr; Antigravity Bridge</span>
+            <button id="toggle-chat-history-btn" class="text-link-btn" type="button">Chat History</button>
           </div>
         </form>
 
-        <!-- Proactive Suggestions Tray -->
+        <!-- Horizontal Swipeable Suggestions Carousel -->
         <section id="suggestions-tray" class="suggestions-tray" aria-label="Suggested evolutions">
           <div class="suggestions-header">
-            <span class="suggestions-label">Suggested Evolutions</span>
-            <button id="shuffle-suggestions-btn" class="text-link-btn" type="button">Refresh ideas</button>
+            <span class="suggestions-label">Tap an idea to evolve</span>
+            <button id="shuffle-suggestions-btn" class="text-link-btn" type="button">More ideas &rarr;</button>
           </div>
           <div id="suggestions-list" class="suggestions-list">
             <!-- Suggestion cards rendered dynamically -->
           </div>
         </section>
+
+        <!-- Compact Chat Message Stream -->
+        <div id="chat-messages" class="chat-messages" role="log" aria-live="polite">
+          <!-- Messages rendered dynamically -->
+        </div>
       </section>
 
       <!-- Dynamic Stage (BELOW CHAT) -->
       <section id="live-stage-panel" class="live-stage-panel" aria-label="Evolved application stage">
         <div class="stage-toolbar">
           <div class="stage-toolbar-left">
-            <span class="section-eyebrow">LIVE APPLICATION STAGE</span>
-            <h2 id="active-stage-heading" class="stage-heading">Genesis Canvas</h2>
+            <span class="section-eyebrow">LIVE STAGE</span>
+            <h2 id="active-stage-heading" class="stage-heading">Mobile-First Canvas</h2>
           </div>
           <div class="stage-toolbar-right">
-            <button id="reset-stage-btn" class="ghost-btn" type="button">Reset to Genesis</button>
+            <button id="reset-stage-btn" class="ghost-btn" type="button">Reset</button>
           </div>
         </div>
 
@@ -153,9 +144,9 @@
           </p>
 
           <div class="arch-item" style="margin-bottom:1rem;">
-            <strong>Mode 1: Silent Background Auto-Send (Recommended)</strong>
+            <strong>Silent Background Auto-Send</strong>
             <span style="display:block;margin:0.35rem 0 0.65rem;">
-              Save a GitHub token locally on your iPhone (stored <em>only</em> in your iPhone's <code>localStorage</code>, never uploaded). Every chat message will automatically dispatch to Antigravity in the background.
+              Your GitHub token is saved <em>only</em> in your iPhone's <code>localStorage</code>. Every chat message automatically dispatches to Antigravity in the background.
             </span>
             <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap;">
               <a
@@ -173,22 +164,15 @@
                 class="stage-text-input"
                 placeholder="Paste ghp_... or github_pat_... token here"
               />
-              <button id="save-gh-token-btn" class="primary-pill-btn" type="button">Save on iPhone</button>
+              <button id="save-gh-token-btn" class="primary-pill-btn" type="button">Save</button>
             </div>
-            <span id="gh-token-status" class="mono-tag subtle" style="display:inline-block;margin-top:0.5rem;">No token saved yet (using 1-Tap Dispatch mode)</span>
-          </div>
-
-          <div class="arch-item">
-            <strong>Mode 2: Zero-Token 1-Tap Dispatch (Works Immediately)</strong>
-            <span>
-              Even without saving a token, every chat message you send on your iPhone includes a <strong>"Send to Antigravity VM &nearr;"</strong> button that dispatches your prompt to Antigravity in one tap using your existing GitHub login in Safari.
-            </span>
+            <span id="gh-token-status" class="mono-tag subtle" style="display:inline-block;margin-top:0.5rem;">Checking token status...</span>
           </div>
         </section>
       </div>
     </aside>
   </div>
 
-  <script src="./app.js?v=0.2.0"></script>
+  <script src="./app.js?v=0.3.0"></script>
 </body>
 </html>
