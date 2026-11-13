@@ -950,6 +950,42 @@
     }, 1500);
   }
 
+  async function askGeminiRouter(promptText, state) {
+    const geminiKey = (localStorage.getItem('hellyeah_gemini_key') || '').trim();
+    if (!geminiKey) return null;
+
+    const sysPrompt = [
+      'You are the front-line Gemini AI router and co-architect inside "hellyeah", a self-evolving web app on the user\'s iPhone.',
+      'You work alongside Antigravity (the deep coding agent running in a Linux VM connected via GitHub).',
+      'Decide whether YOU ("self") should handle the user\'s message directly right now, or whether to escalate/forward it to Antigravity ("antigravity"):',
+      '- Choose "self" if the user is chatting, asking a question, brainstorming, asking for suggestions, or asking for an instant UI/widget/theme tweak that you can apply immediately via customCss, stageHtml, or theme.',
+      '- Choose "antigravity" if the user explicitly asks for Antigravity, or asks for deep multi-file repository/backend/git changes that require the Linux VM agent.',
+      'Return strict JSON with keys:',
+      '{"route": "self" | "antigravity", "reply": "Your concise response", "badge": "Gemini 2.5 • Direct" | "Routed to Antigravity VM", "theme": "atelier-dark" | "atelier-light" | null, "customCss": "optional CSS string or null", "stageHtml": "optional HTML card string for the stage or null"}'
+    ].join('\n');
+
+    try {
+      const res = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(geminiKey),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: sysPrompt }] },
+            contents: [{ role: 'user', parts: [{ text: promptText }] }],
+            generationConfig: { responseMimeType: 'application/json', temperature: 0.3 }
+          })
+        }
+      );
+      if (!res.ok) throw new Error('Gemini API ' + res.status);
+      const data = await res.json();
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+      return JSON.parse(rawText);
+    } catch (err) {
+      return null;
+    }
+  }
+
   async function submitPrompt(promptText) {
     const input = document.getElementById('chat-input');
     if (input) input.value = '';
@@ -964,21 +1000,70 @@
       if (data.state) renderApp(data.state);
     } catch (e) {
       const token = (localStorage.getItem('hellyeah_gh_token') || '').trim();
-      if (token) {
-        // Real Live Bridge Mode: NO fake automated message!
-        const nextState = JSON.parse(JSON.stringify(appState || FALLBACK_INITIAL_STATE));
-        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        nextState.messages = Array.isArray(nextState.messages) ? nextState.messages : [];
-        nextState.messages.push({
-          id: 'msg-u-' + Date.now(),
-          role: 'user',
-          author: 'You',
-          timestamp: nowStr,
-          content: promptText
-        });
-        nextState.agentStatus = 'evolving';
-        renderApp(nextState);
+      const geminiKey = (localStorage.getItem('hellyeah_gemini_key') || '').trim();
+      const nextState = JSON.parse(JSON.stringify(appState || FALLBACK_INITIAL_STATE));
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      nextState.messages = Array.isArray(nextState.messages) ? nextState.messages : [];
+      nextState.messages.push({
+        id: 'msg-u-' + Date.now(),
+        role: 'user',
+        author: 'You',
+        timestamp: nowStr,
+        content: promptText
+      });
+      nextState.agentStatus = 'evolving';
+      renderApp(nextState);
 
+      // Step 1: If Gemini API key is configured, ask Gemini Router first (<1s)!
+      if (geminiKey) {
+        const decision = await askGeminiRouter(promptText, nextState);
+        if (decision) {
+          if (decision.theme === 'atelier-dark' || decision.theme === 'atelier-light') {
+            nextState.activeTheme = decision.theme;
+          }
+          if (decision.customCss) {
+            let styleTag = document.getElementById('gemini-live-css');
+            if (!styleTag) {
+              styleTag = document.createElement('style');
+              styleTag.id = 'gemini-live-css';
+              document.head.appendChild(styleTag);
+            }
+            styleTag.textContent += '\n' + decision.customCss;
+          }
+          if (decision.stageHtml) {
+            window.GEMINI_STAGE_HTML = decision.stageHtml;
+          }
+
+          if (decision.route === 'self') {
+            nextState.agentStatus = 'connected';
+            nextState.messages.push({
+              id: 'msg-gemini-' + Date.now(),
+              role: 'assistant',
+              author: 'Gemini 2.5 (Direct)',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              content: decision.reply || 'Done!',
+              mutationBadge: decision.badge || 'Gemini 2.5 • Answered Directly'
+            });
+            try { localStorage.setItem('hellyeah_state', JSON.stringify(nextState)); } catch (err) {}
+            renderApp(nextState);
+            return;
+          } else {
+            // Gemini decided to route to Antigravity! Show Gemini's handoff note immediately:
+            nextState.messages.push({
+              id: 'msg-gemini-route-' + Date.now(),
+              role: 'assistant',
+              author: 'Gemini Router → Antigravity',
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              content: decision.reply || 'Routing this task to Antigravity in the VM...',
+              mutationBadge: decision.badge || 'Routed to Antigravity VM'
+            });
+            renderApp(nextState);
+          }
+        }
+      }
+
+      // Step 2: Escalate/Send to Antigravity via GitHub Bridge
+      if (token) {
         const bridgeResult = await dispatchToGitHubBridge(promptText);
         if (bridgeResult.sentSilently) {
           const baseRev = nextState.syncedCloudRevision || nextState.cloudRevision || 0;
@@ -987,7 +1072,7 @@
             role: 'assistant',
             author: 'Antigravity (Live)',
             timestamp: nowStr,
-            content: `Connected to Antigravity VM (\`#${bridgeResult.issueNumber}\`). Reading your prompt now...`,
+            content: `Connected to Antigravity VM (\`#${bridgeResult.issueNumber}\`). Working on your request...`,
             mutationBadge: `Live Stream #${bridgeResult.issueNumber}`
           });
           renderApp(nextState);
@@ -997,14 +1082,14 @@
       }
 
       // Offline / No-Token Fallback only
-      const nextState = clientSynthesizeEvolution(promptText, appState);
+      const fallbackState = clientSynthesizeEvolution(promptText, appState);
       const bridgeResult = await dispatchToGitHubBridge(promptText);
-      const lastMsg = nextState.messages[nextState.messages.length - 1];
+      const lastMsg = fallbackState.messages[fallbackState.messages.length - 1];
       if (lastMsg && bridgeResult.fallbackUrl) {
         lastMsg.bridgeDispatchUrl = bridgeResult.fallbackUrl;
       }
-      try { localStorage.setItem('hellyeah_state', JSON.stringify(nextState)); } catch (err) {}
-      renderApp(nextState);
+      try { localStorage.setItem('hellyeah_state', JSON.stringify(fallbackState)); } catch (err) {}
+      renderApp(fallbackState);
     }
   }
 
@@ -1031,11 +1116,23 @@
     const saved = localStorage.getItem('hellyeah_gh_token') || '';
     if (statusEl) {
       statusEl.textContent = saved
-        ? '✓ Silent Auto-Send Active (Token saved in iPhone localStorage)'
-        : 'No token saved yet (using 1-Tap Dispatch mode)';
+        ? '✓ GitHub Bridge Active (Saved in iPhone localStorage)'
+        : 'No GitHub token saved yet';
     }
     if (tokenInput && saved) {
       tokenInput.value = saved;
+    }
+
+    const geminiStatusEl = document.getElementById('gemini-key-status');
+    const geminiInput = document.getElementById('gemini-key-input');
+    const savedGemini = localStorage.getItem('hellyeah_gemini_key') || '';
+    if (geminiStatusEl) {
+      geminiStatusEl.textContent = savedGemini
+        ? '✓ Gemini 2.5 Flash Router Active (<1s first response)'
+        : 'No Gemini key saved yet';
+    }
+    if (geminiInput && savedGemini) {
+      geminiInput.value = savedGemini;
     }
   }
 
@@ -1102,6 +1199,20 @@
           localStorage.setItem('hellyeah_gh_token', val);
         } else {
           localStorage.removeItem('hellyeah_gh_token');
+        }
+        refreshBridgeTokenStatus();
+        if (appState) renderApp(appState);
+      });
+    }
+
+    const saveGeminiBtn = document.getElementById('save-gemini-key-btn');
+    if (saveGeminiBtn) {
+      saveGeminiBtn.addEventListener('click', () => {
+        const val = (document.getElementById('gemini-key-input').value || '').trim();
+        if (val) {
+          localStorage.setItem('hellyeah_gemini_key', val);
+        } else {
+          localStorage.removeItem('hellyeah_gemini_key');
         }
         refreshBridgeTokenStatus();
         if (appState) renderApp(appState);
