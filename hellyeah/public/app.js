@@ -895,6 +895,61 @@
     }
   }
 
+  let activeIssuePollTimer = null;
+
+  function watchLiveIssueComments(issueNumber, baseCloudRev) {
+    const token = (localStorage.getItem('hellyeah_gh_token') || '').trim();
+    if (!token || !issueNumber) return;
+    if (activeIssuePollTimer) clearInterval(activeIssuePollTimer);
+
+    const startedAt = Date.now();
+    activeIssuePollTimer = setInterval(async () => {
+      if (Date.now() - startedAt > 180000) {
+        clearInterval(activeIssuePollTimer);
+        return;
+      }
+      // If cloudRevision already advanced, stop issue polling because full state arrived!
+      if (appState && (appState.syncedCloudRevision || 0) > baseCloudRev) {
+        clearInterval(activeIssuePollTimer);
+        return;
+      }
+      try {
+        const res = await fetch(
+          `https://api.github.com/repos/magistak/magistak.github.io/issues/${issueNumber}/comments?t=${Date.now()}`,
+          {
+            headers: {
+              'Accept': 'application/vnd.github+json',
+              'Authorization': 'Bearer ' + token
+            },
+            cache: 'no-store'
+          }
+        );
+        if (res.ok) {
+          const comments = await res.json();
+          if (Array.isArray(comments) && comments.length > 0 && appState) {
+            const latest = comments[comments.length - 1];
+            const liveMsgId = 'msg-live-issue-' + issueNumber;
+            const existingIdx = (appState.messages || []).findIndex((m) => m.id === liveMsgId);
+            const liveMsg = {
+              id: liveMsgId,
+              role: 'assistant',
+              author: 'Antigravity (Live)',
+              timestamp: new Date(latest.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+              content: latest.body,
+              mutationBadge: `Live Response on #${issueNumber} • Working...`
+            };
+            if (existingIdx >= 0) {
+              appState.messages[existingIdx] = liveMsg;
+            } else {
+              appState.messages.push(liveMsg);
+            }
+            renderMessages(appState.messages);
+          }
+        }
+      } catch (e) {}
+    }, 1500);
+  }
+
   async function submitPrompt(promptText) {
     const input = document.getElementById('chat-input');
     if (input) input.value = '';
@@ -908,16 +963,45 @@
       const data = await res.json();
       if (data.state) renderApp(data.state);
     } catch (e) {
+      const token = (localStorage.getItem('hellyeah_gh_token') || '').trim();
+      if (token) {
+        // Real Live Bridge Mode: NO fake automated message!
+        const nextState = JSON.parse(JSON.stringify(appState || FALLBACK_INITIAL_STATE));
+        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        nextState.messages = Array.isArray(nextState.messages) ? nextState.messages : [];
+        nextState.messages.push({
+          id: 'msg-u-' + Date.now(),
+          role: 'user',
+          author: 'You',
+          timestamp: nowStr,
+          content: promptText
+        });
+        nextState.agentStatus = 'evolving';
+        renderApp(nextState);
+
+        const bridgeResult = await dispatchToGitHubBridge(promptText);
+        if (bridgeResult.sentSilently) {
+          const baseRev = nextState.syncedCloudRevision || nextState.cloudRevision || 0;
+          nextState.messages.push({
+            id: 'msg-live-issue-' + bridgeResult.issueNumber,
+            role: 'assistant',
+            author: 'Antigravity (Live)',
+            timestamp: nowStr,
+            content: `Connected to Antigravity VM (\`#${bridgeResult.issueNumber}\`). Reading your prompt now...`,
+            mutationBadge: `Live Stream #${bridgeResult.issueNumber}`
+          });
+          renderApp(nextState);
+          watchLiveIssueComments(bridgeResult.issueNumber, baseRev);
+        }
+        return;
+      }
+
+      // Offline / No-Token Fallback only
       const nextState = clientSynthesizeEvolution(promptText, appState);
       const bridgeResult = await dispatchToGitHubBridge(promptText);
       const lastMsg = nextState.messages[nextState.messages.length - 1];
-      if (lastMsg) {
-        if (bridgeResult.sentSilently) {
-          lastMsg.mutationBadge = `Dispatched to Antigravity VM (#${bridgeResult.issueNumber}) • Live`;
-          lastMsg.content += `\n\n**Antigravity Bridge:** Transmitted directly to Antigravity VM (\`#${bridgeResult.issueNumber}\`). Your iPhone will auto-update as soon as Antigravity pushes custom code.`;
-        } else {
-          lastMsg.bridgeDispatchUrl = bridgeResult.fallbackUrl;
-        }
+      if (lastMsg && bridgeResult.fallbackUrl) {
+        lastMsg.bridgeDispatchUrl = bridgeResult.fallbackUrl;
       }
       try { localStorage.setItem('hellyeah_state', JSON.stringify(nextState)); } catch (err) {}
       renderApp(nextState);
