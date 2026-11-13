@@ -303,32 +303,74 @@
     }
   }
 
+  async function fetchCloudStateDirect() {
+    const token = (localStorage.getItem('hellyeah_gh_token') || '').trim();
+    if (token) {
+      try {
+        const apiRes = await fetch(
+          'https://api.github.com/repos/magistak/magistak.github.io/contents/hellyeah/data/state.json?ref=main&t=' + Date.now(),
+          {
+            headers: {
+              'Accept': 'application/vnd.github.raw+json',
+              'Authorization': 'Bearer ' + token
+            },
+            cache: 'no-store'
+          }
+        );
+        if (apiRes.ok) return await apiRes.json();
+      } catch (e) {}
+    }
+    const r = await fetch('./data/state.json?t=' + Date.now(), { cache: 'no-store' });
+    if (r.ok) return await r.json();
+    return null;
+  }
+
+  async function applyLiveDeltaAssetsFromAPI() {
+    const token = (localStorage.getItem('hellyeah_gh_token') || '').trim();
+    if (!token) return;
+    try {
+      const cssRes = await fetch(
+        'https://api.github.com/repos/magistak/magistak.github.io/contents/hellyeah/custom.css?ref=main&t=' + Date.now(),
+        { headers: { 'Accept': 'application/vnd.github.raw+json', 'Authorization': 'Bearer ' + token }, cache: 'no-store' }
+      );
+      if (cssRes.ok) {
+        const cssText = await cssRes.text();
+        let dynStyle = document.getElementById('live-api-custom-css');
+        if (!dynStyle) {
+          dynStyle = document.createElement('style');
+          dynStyle.id = 'live-api-custom-css';
+          document.head.appendChild(dynStyle);
+        }
+        dynStyle.textContent = cssText;
+      }
+      const jsRes = await fetch(
+        'https://api.github.com/repos/magistak/magistak.github.io/contents/hellyeah/stage-custom.js?ref=main&t=' + Date.now(),
+        { headers: { 'Accept': 'application/vnd.github.raw+json', 'Authorization': 'Bearer ' + token }, cache: 'no-store' }
+      );
+      if (jsRes.ok) {
+        const jsText = await jsRes.text();
+        try { new Function(jsText)(); } catch (err) {}
+      }
+    } catch (e) {}
+  }
+
   function setupSSE() {
     const startStaticCloudPoll = () => {
       setInterval(async () => {
         try {
-          const r = await fetch('./data/state.json?t=' + Date.now());
-          if (r.ok) {
-            const remote = await r.json();
+          const remote = await fetchCloudStateDirect();
+          if (remote) {
             const remoteRev = remote.cloudRevision || 0;
             const currentRev = appState ? (appState.syncedCloudRevision || appState.cloudRevision || 0) : 0;
-            if (remote && remoteRev > currentRev) {
-              const prevCodeVer = appState ? appState.codeVersion : null;
+            if (remoteRev > currentRev) {
               remote.syncedCloudRevision = remoteRev;
               try { localStorage.setItem('hellyeah_state', JSON.stringify(remote)); } catch (err) {}
-              const linkEl = document.getElementById('main-stylesheet');
-              if (linkEl) {
-                linkEl.href = './style.css?v=' + encodeURIComponent(remote.codeVersion || remoteRev) + '&t=' + Date.now();
-              }
-              if (remote.codeVersion && remote.codeVersion !== prevCodeVer) {
-                window.location.href = window.location.pathname + '?v=' + encodeURIComponent(remote.codeVersion) + '&t=' + Date.now();
-                return;
-              }
+              await applyLiveDeltaAssetsFromAPI();
               renderApp(remote);
             }
           }
         } catch (err) {}
-      }, 5000);
+      }, 2500);
     };
 
     try {
@@ -950,40 +992,51 @@
     }, 1500);
   }
 
+  window.HELLEVO_CORE_V061 = true;
+
   async function askGeminiRouter(promptText, state) {
+    if (typeof window.askGeminiMultiModelRouter === 'function') {
+      return await window.askGeminiMultiModelRouter(promptText, state);
+    }
     const geminiKey = (localStorage.getItem('hellyeah_gemini_key') || '').trim();
     if (!geminiKey) return null;
-
+    const models = ['gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
     const sysPrompt = [
-      'You are the front-line Gemini AI router and co-architect inside "hellyeah", a self-evolving web app on the user\'s iPhone.',
+      'You are the front-line Gemini AI inside "hellyeah", a self-evolving web app on the user\'s iPhone.',
       'You work alongside Antigravity (the deep coding agent running in a Linux VM connected via GitHub).',
-      'Decide whether YOU ("self") should handle the user\'s message directly right now, or whether to escalate/forward it to Antigravity ("antigravity"):',
-      '- Choose "self" if the user is chatting, asking a question, brainstorming, asking for suggestions, or asking for an instant UI/widget/theme tweak that you can apply immediately via customCss, stageHtml, or theme.',
-      '- Choose "antigravity" if the user explicitly asks for Antigravity, or asks for deep multi-file repository/backend/git changes that require the Linux VM agent.',
-      'Return strict JSON with keys:',
-      '{"route": "self" | "antigravity", "reply": "Your concise response", "badge": "Gemini 2.5 • Direct" | "Routed to Antigravity VM", "theme": "atelier-dark" | "atelier-light" | null, "customCss": "optional CSS string or null", "stageHtml": "optional HTML card string for the stage or null"}'
+      'Decide whether YOU ("self") should handle the user\'s message directly right now, or escalate to Antigravity ("antigravity"):',
+      '- Choose "self" (DEFAULT) if the user is chatting, testing you, asking questions, brainstorming, or asking for an instant UI/widget/theme tweak via stageHtml, customCss, or theme.',
+      '- Choose "antigravity" ONLY if the user explicitly asks for Antigravity or deep multi-file git commits in the Linux VM.',
+      'Return strict JSON: {"route": "self" | "antigravity", "reply": "Your concise response", "badge": "Status badge", "theme": "atelier-dark" | "atelier-light" | null, "customCss": null, "stageHtml": null}'
     ].join('\n');
 
-    try {
-      const res = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' + encodeURIComponent(geminiKey),
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: sysPrompt }] },
-            contents: [{ role: 'user', parts: [{ text: promptText }] }],
-            generationConfig: { responseMimeType: 'application/json', temperature: 0.3 }
-          })
-        }
-      );
-      if (!res.ok) throw new Error('Gemini API ' + res.status);
-      const data = await res.json();
-      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-      return JSON.parse(rawText);
-    } catch (err) {
-      return null;
+    let lastErr = null;
+    for (const modelName of models) {
+      try {
+        const res = await fetch(
+          'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelName) + ':generateContent?key=' + encodeURIComponent(geminiKey),
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: sysPrompt }] },
+              contents: [{ role: 'user', parts: [{ text: promptText }] }],
+              generationConfig: { responseMimeType: 'application/json', temperature: 0.35 }
+            })
+          }
+        );
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json();
+        let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+        rawText = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
+        const parsed = JSON.parse(rawText);
+        parsed._modelUsed = modelName;
+        return parsed;
+      } catch (err) {
+        lastErr = err;
+      }
     }
+    return { error: lastErr ? lastErr.message : 'Gemini request failed' };
   }
 
   async function submitPrompt(promptText) {
@@ -1012,12 +1065,29 @@
         content: promptText
       });
       nextState.agentStatus = 'evolving';
+      nextState.agentStatusText = geminiKey ? 'Gemini Router thinking...' : 'Connecting to Antigravity...';
       renderApp(nextState);
 
       // Step 1: If Gemini API key is configured, ask Gemini Router first (<1s)!
+      let bridgePromptText = promptText;
       if (geminiKey) {
         const decision = await askGeminiRouter(promptText, nextState);
-        if (decision) {
+        if (decision && decision.error) {
+          nextState.agentStatus = 'connected';
+          nextState.messages.push({
+            id: 'msg-gemini-err-' + Date.now(),
+            role: 'assistant',
+            author: 'Gemini Router',
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            content: `⚠️ **Gemini API Error**: \`${decision.error}\`\nCheck your Gemini API key or model selection in the stage card below.`,
+            mutationBadge: 'Gemini Error • Not Sent to VM'
+          });
+          try { localStorage.setItem('hellyeah_state', JSON.stringify(nextState)); } catch (err) {}
+          renderApp(nextState);
+          return;
+        }
+        if (decision && !decision.error) {
+          const usedModel = decision._modelUsed || 'gemini-3-flash-preview';
           if (decision.theme === 'atelier-dark' || decision.theme === 'atelier-light') {
             nextState.activeTheme = decision.theme;
           }
@@ -1034,28 +1104,29 @@
             window.GEMINI_STAGE_HTML = decision.stageHtml;
           }
 
-          if (decision.route === 'self') {
+          if (decision.route !== 'antigravity') {
             nextState.agentStatus = 'connected';
             nextState.messages.push({
               id: 'msg-gemini-' + Date.now(),
               role: 'assistant',
-              author: 'Gemini 2.5 (Direct)',
+              author: `Gemini (${usedModel})`,
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
               content: decision.reply || 'Done!',
-              mutationBadge: decision.badge || 'Gemini 2.5 • Answered Directly'
+              mutationBadge: decision.badge || `⚡ ${usedModel} • Direct (<1s)`
             });
             try { localStorage.setItem('hellyeah_state', JSON.stringify(nextState)); } catch (err) {}
             renderApp(nextState);
             return;
           } else {
             // Gemini decided to route to Antigravity! Show Gemini's handoff note immediately:
+            bridgePromptText = `[Routed by ${usedModel}] ${promptText}`;
             nextState.messages.push({
               id: 'msg-gemini-route-' + Date.now(),
               role: 'assistant',
-              author: 'Gemini Router → Antigravity',
+              author: `Gemini (${usedModel}) → Antigravity`,
               timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-              content: decision.reply || 'Routing this task to Antigravity in the VM...',
-              mutationBadge: decision.badge || 'Routed to Antigravity VM'
+              content: decision.reply || 'Escalating this task to Antigravity in the Linux VM...',
+              mutationBadge: decision.badge || `Routed by ${usedModel} → Antigravity VM`
             });
             renderApp(nextState);
           }
@@ -1064,7 +1135,7 @@
 
       // Step 2: Escalate/Send to Antigravity via GitHub Bridge
       if (token) {
-        const bridgeResult = await dispatchToGitHubBridge(promptText);
+        const bridgeResult = await dispatchToGitHubBridge(bridgePromptText);
         if (bridgeResult.sentSilently) {
           const baseRev = nextState.syncedCloudRevision || nextState.cloudRevision || 0;
           nextState.messages.push({

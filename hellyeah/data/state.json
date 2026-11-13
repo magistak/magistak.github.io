@@ -1,84 +1,62 @@
 {
   "appName": "hellyeah",
-  "version": "0.6.0",
-  "codeVersion": "0.6.0",
-  "cloudRevision": 6,
-  "stageName": "Gemini + Antigravity Dual-Agent Studio",
-  "evolutionCount": 5,
-  "agentStatus": "connected",
+  "version": "0.6.1",
+  "codeVersion": "0.6.1",
+  "cloudRevision": 7,
+  "stageName": "Multi-Model Gemini 3 + Antigravity Studio",
   "activeTheme": "atelier-dark",
+  "evolutionCount": 7,
+  "agentStatus": "connected",
   "messages": [
     {
-      "id": "m4",
+      "id": "msg-u-6",
       "role": "user",
-      "author": "You (#4)",
-      "timestamp": "Earlier",
-      "content": "I want to see you here live reliably as soon as I send a message..."
+      "author": "You (iPhone)",
+      "timestamp": "14:43",
+      "content": "I saved the key. Let's try it. Maybe you'll need to use newer model?"
     },
     {
-      "id": "m4-ag",
+      "id": "msg-a-6",
       "role": "assistant",
       "author": "Antigravity",
-      "timestamp": "Earlier",
-      "content": "Switched to 1.5s live Issue comment streaming + 0.2s raw GitHub API sync (`v0.5.0`).",
-      "mutationBadge": "v0.5.0 • Direct API Stream (#4)"
-    },
-    {
-      "id": "m5",
-      "role": "user",
-      "author": "You (#5)",
-      "timestamp": "Just now",
-      "content": "I’ll give you Gemini api key. My message should first go to Gemini and it should decide whether to answer it itself or give it to you."
-    },
-    {
-      "id": "m5-ag",
-      "role": "assistant",
-      "author": "Antigravity",
-      "timestamp": "Just now",
-      "content": "Built and deployed the **Gemini 2.5 Flash First-Responder Router (`v0.6.0`)**:\n\n- Paste your Gemini API key right in the card below (or in the **Bridge** button menu — saved *only* in your iPhone's `localStorage`).\n- Every message now goes to **Gemini 2.5 Flash** first in **<1 second**: Gemini decides whether to answer/mutate the UI immediately itself (`route: \"self\"`) or hand off deep repository tasks to me (`route: \"antigravity\"`).",
-      "mutationBadge": "v0.6.0 • Gemini + Antigravity Router (#5)"
+      "timestamp": "14:50",
+      "content": "Upgraded to **`v0.6.1`**! Two improvements are now live:\n1. **Newest Gemini Models + Selector**: Auto-tries `gemini-3-flash-preview` first, falling back to `gemini-2.5-flash` / `gemini-2.5-pro` (plus a live model dropdown & **⚡ Test Gemini** button right on the stage).\n2. **Zero-Reload Hot Interceptor**: Attached a capture-phase listener inside `stage-custom.js` so even if Safari cached an older `app.js`, your chat messages immediately hit Gemini first!",
+      "mutationBadge": "v0.6.1 • Gemini 3 Flash + Hot Interceptor (#6)"
     }
   ],
   "suggestions": [
     {
-      "id": "s1",
-      "title": "Test Gemini Direct Reply",
+      "id": "sug-1",
+      "title": "Test Gemini 3 Flash Direct Reply",
       "category": "Gemini (<1s)",
-      "description": "Ask a quick question or UI tweak handled by Gemini.",
-      "prompt": "What are 3 creative micro-tools we could build into this app today?"
+      "description": "Ask Gemini which model it is running on and have it answer immediately.",
+      "prompt": "Hey Gemini! Which exact model are you running on right now, and give me 3 wild ideas for this app?"
     },
     {
-      "id": "s2",
-      "title": "Pomodoro & Task Deck",
-      "category": "Focus",
-      "description": "Tactile timer & task queue.",
-      "prompt": "Evolve the stage into a Personal Command Deck with a Pomodoro timer and task queue."
+      "id": "sug-2",
+      "title": "Instant Live Stage Widget via Gemini",
+      "category": "Gemini UI Mutation",
+      "description": "Have Gemini inject a live interactive tool card directly onto the stage in <1s.",
+      "prompt": "Build a sleek interactive BPM tap-tempo & frequency calculator card right on the stage."
     },
     {
-      "id": "s3",
-      "title": "Touch XY Audio Synth",
-      "category": "Audio",
-      "description": "Playable WebAudio touch synth.",
-      "prompt": "Add a playable WebAudio synthesizer and XY expression pad with preset chords."
-    },
-    {
-      "id": "s4",
-      "title": "Spatial Note Cards",
-      "category": "Notes",
-      "description": "Persistent thought cards.",
-      "prompt": "Build an interactive spatial note-taking board where I can create thought cards."
+      "id": "sug-3",
+      "title": "Test Handoff to Antigravity VM",
+      "category": "Escalation",
+      "description": "Ask Gemini to escalate a permanent repo task to Antigravity.",
+      "prompt": "Ask Antigravity to add a persistent soundscape preset library to the repository."
     }
   ],
   "changelog": [
     {
-      "version": "0.6.0",
-      "timestamp": "Issue #5",
-      "summary": "Added Gemini 2.5 Flash First-Responder Router: messages hit Gemini first (<1s), which either answers/mutates directly or escalates to Antigravity VM."
+      "version": "0.6.1",
+      "timestamp": "14:50",
+      "summary": "Added gemini-3-flash-preview / gemini-2.5-flash / gemini-2.5-pro multi-model router, model selector, and capture-phase hot interceptor (#6)."
     },
     {
-      "version": "0.5.0",
-      "timestamp": "Issue #4",
-      "summary": "Direct GitHub API live streaming (1.5s comment stream + 0.2s raw Contents API sync)."
+      "version": "0.6.0",
+      "timestamp": "14:04",
+      "summary": "Added Gemini 2.5 Flash first-responder router (#5)."
     }
   ],
   "modules": []
