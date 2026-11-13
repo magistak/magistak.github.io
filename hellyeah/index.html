@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/style.css" />
+  <link id="main-stylesheet" rel="stylesheet" href="./style.css?v=0.2.0" />
 </head>
 <body>
   <div id="app-shell" class="app-shell mode-genesis">
@@ -22,17 +22,17 @@
         <span class="brand-mark" aria-hidden="true"></span>
         <div class="brand-titles">
           <h1 id="app-title" class="app-title">hellyeah</h1>
-          <span id="stage-subtitle" class="stage-subtitle">Genesis Seed</span>
+          <span id="stage-subtitle" class="stage-subtitle">Chat-First Top Console</span>
         </div>
-        <span id="version-badge" class="mono-tag">v0.1.0</span>
-        <span id="mutation-counter" class="mono-tag subtle">0 mutations</span>
+        <span id="version-badge" class="mono-tag">v0.2.0</span>
+        <span id="mutation-counter" class="mono-tag subtle">1 mutation</span>
       </div>
 
       <nav class="studio-controls" aria-label="Workspace controls">
-        <div id="agent-connection-indicator" class="connection-status" role="status" aria-live="polite">
+        <button id="open-bridge-btn" class="connection-status" type="button" title="Configure live GitHub Bridge to Antigravity VM">
           <span id="status-dot" class="status-dot connected"></span>
-          <span id="status-label" class="status-label">Linked to Antigravity</span>
-        </div>
+          <span id="status-label" class="status-label">Antigravity Bridge</span>
+        </button>
 
         <button id="toggle-inspector-btn" class="header-action-btn" type="button" title="Inspect live source files and evolution changelog">
           <span>Source &amp; Log</span>
@@ -44,9 +44,56 @@
       </nav>
     </header>
 
-    <!-- Main Evolving Workspace -->
-    <main id="workspace-main" class="workspace-main">
-      <!-- Dynamic Stage: Hidden/compact in pure Genesis until first evolution or when modules exist -->
+    <!-- Main Evolving Workspace (Chat Window Docked at the Top) -->
+    <main id="workspace-main" class="workspace-main chat-at-top">
+      <!-- Antigravity Chat & Evolution Suggestions Interface (TOP) -->
+      <section id="antigravity-console" class="antigravity-console" aria-label="Antigravity Evolution Chat">
+        <div class="console-header">
+          <div class="console-header-info">
+            <span class="section-eyebrow">ANTIGRAVITY DIRECT LINK &bull; TOP CONSOLE</span>
+            <h2 class="console-title">Evolution Chat Console</h2>
+          </div>
+          <span class="workspace-path-tag" title="Live file path on VM">Top-Docked &bull; v0.2.0</span>
+        </div>
+
+        <!-- Chat Message Stream -->
+        <div id="chat-messages" class="chat-messages" role="log" aria-live="polite">
+          <!-- Messages rendered dynamically -->
+        </div>
+
+        <!-- Prompt Input Form -->
+        <form id="chat-form" class="chat-form" autocomplete="off">
+          <div class="input-wrapper">
+            <textarea
+              id="chat-input"
+              class="chat-input"
+              rows="2"
+              placeholder="Tell hellyeah how to evolve next... (Press Enter to mutate)"
+              aria-label="Evolution prompt for Antigravity"
+              required
+            ></textarea>
+            <div class="input-footer">
+              <span id="mutation-hint" class="mutation-hint">Connected to Antigravity via GitHub Bridge</span>
+              <button id="send-prompt-btn" class="send-prompt-btn" type="submit">
+                <span id="send-btn-text">Evolve App</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Proactive Suggestions Tray -->
+        <section id="suggestions-tray" class="suggestions-tray" aria-label="Suggested evolutions">
+          <div class="suggestions-header">
+            <span class="suggestions-label">Suggested Evolutions</span>
+            <button id="shuffle-suggestions-btn" class="text-link-btn" type="button">Refresh ideas</button>
+          </div>
+          <div id="suggestions-list" class="suggestions-list">
+            <!-- Suggestion cards rendered dynamically -->
+          </div>
+        </section>
+      </section>
+
+      <!-- Dynamic Stage (BELOW CHAT) -->
       <section id="live-stage-panel" class="live-stage-panel" aria-label="Evolved application stage">
         <div class="stage-toolbar">
           <div class="stage-toolbar-left">
@@ -62,53 +109,6 @@
           <!-- Populated dynamically as the app evolves -->
         </div>
       </section>
-
-      <!-- Antigravity Chat & Evolution Suggestions Interface -->
-      <aside id="antigravity-console" class="antigravity-console" aria-label="Antigravity Evolution Chat">
-        <div class="console-header">
-          <div class="console-header-info">
-            <span class="section-eyebrow">ANTIGRAVITY DIRECT LINK</span>
-            <h2 class="console-title">Evolution Console</h2>
-          </div>
-          <span class="workspace-path-tag" title="Live file path on VM">/home/antigravity/hellyeah</span>
-        </div>
-
-        <!-- Chat Message Stream -->
-        <div id="chat-messages" class="chat-messages" role="log" aria-live="polite">
-          <!-- Messages rendered dynamically -->
-        </div>
-
-        <!-- Proactive Suggestions Tray -->
-        <section id="suggestions-tray" class="suggestions-tray" aria-label="Suggested evolutions">
-          <div class="suggestions-header">
-            <span class="suggestions-label">Suggested Evolutions</span>
-            <button id="shuffle-suggestions-btn" class="text-link-btn" type="button">Refresh ideas</button>
-          </div>
-          <div id="suggestions-list" class="suggestions-list">
-            <!-- Suggestion cards rendered dynamically -->
-          </div>
-        </section>
-
-        <!-- Prompt Input Form -->
-        <form id="chat-form" class="chat-form" autocomplete="off">
-          <div class="input-wrapper">
-            <textarea
-              id="chat-input"
-              class="chat-input"
-              rows="2"
-              placeholder="Tell hellyeah how to evolve next... (Press Enter to mutate)"
-              aria-label="Evolution prompt for Antigravity"
-              required
-            ></textarea>
-            <div class="input-footer">
-              <span id="mutation-hint" class="mutation-hint">Writes directly to /home/antigravity/hellyeah &bull; Live SSE sync</span>
-              <button id="send-prompt-btn" class="send-prompt-btn" type="submit">
-                <span id="send-btn-text">Evolve App</span>
-              </button>
-            </div>
-          </div>
-        </form>
-      </aside>
     </main>
 
     <!-- Slide-over Drawer: Live Source Files & Evolution Changelog -->
@@ -189,6 +189,6 @@
     </aside>
   </div>
 
-  <script src="./app.js"></script>
+  <script src="./app.js?v=0.2.0"></script>
 </body>
 </html>

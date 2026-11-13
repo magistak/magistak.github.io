@@ -274,7 +274,10 @@
         const staticRes = await fetch('./data/state.json?t=' + Date.now());
         if (staticRes.ok) {
           const staticData = await staticRes.json();
-          if (!saved || (staticData.evolutionCount || 0) > (saved.evolutionCount || 0)) {
+          const remoteRev = staticData.cloudRevision || staticData.evolutionCount || 0;
+          const localSyncedRev = saved ? (saved.syncedCloudRevision || 0) : -1;
+          if (!saved || remoteRev > localSyncedRev) {
+            staticData.syncedCloudRevision = remoteRev;
             try { localStorage.setItem('hellyeah_state', JSON.stringify(staticData)); } catch (err) {}
             renderApp(staticData);
             return;
@@ -307,18 +310,25 @@
           const r = await fetch('./data/state.json?t=' + Date.now());
           if (r.ok) {
             const remote = await r.json();
-            if (remote && appState && (remote.evolutionCount || 0) > (appState.evolutionCount || 0)) {
-              const prevCodeVer = appState.codeVersion;
+            const remoteRev = remote.cloudRevision || 0;
+            const currentRev = appState ? (appState.syncedCloudRevision || appState.cloudRevision || 0) : 0;
+            if (remote && remoteRev > currentRev) {
+              const prevCodeVer = appState ? appState.codeVersion : null;
+              remote.syncedCloudRevision = remoteRev;
               try { localStorage.setItem('hellyeah_state', JSON.stringify(remote)); } catch (err) {}
+              const linkEl = document.getElementById('main-stylesheet');
+              if (linkEl) {
+                linkEl.href = './style.css?v=' + encodeURIComponent(remote.codeVersion || remoteRev) + '&t=' + Date.now();
+              }
               if (remote.codeVersion && remote.codeVersion !== prevCodeVer) {
-                window.location.reload();
+                window.location.href = window.location.pathname + '?v=' + encodeURIComponent(remote.codeVersion) + '&t=' + Date.now();
                 return;
               }
               renderApp(remote);
             }
           }
         } catch (err) {}
-      }, 6000);
+      }, 5000);
     };
 
     try {

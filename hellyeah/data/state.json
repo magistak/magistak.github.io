@@ -1,20 +1,37 @@
 {
   "appName": "hellyeah",
   "subtitle": "Self-Evolving Workspace • Connected to Antigravity",
-  "version": "0.1.0",
-  "stageName": "Genesis Seed",
-  "evolutionCount": 0,
+  "version": "0.2.0",
+  "codeVersion": "0.2.0",
+  "cloudRevision": 2,
+  "stageName": "Chat-First Top Console",
+  "evolutionCount": 1,
   "agentStatus": "connected",
-  "agentStatusText": "Linked to Antigravity (/home/antigravity/hellyeah)",
+  "agentStatusText": "Antigravity Bridge (Auto)",
   "activeTheme": "atelier-dark",
   "messages": [
     {
       "id": "msg-genesis-1",
       "role": "assistant",
       "author": "Antigravity",
-      "timestamp": "Just now",
-      "content": "Welcome to **hellyeah** (`v0.1.0 — Genesis`).Right now, this app is a clean slate—just our live communication link and an open stage.\n\nTell me what you want this app to become, or pick one of the evolution suggestions. Whatever you write here triggers a live mutation in `/home/antigravity/hellyeah` and hot-reloads the interface in real time.",
+      "timestamp": "Genesis",
+      "content": "Welcome to **hellyeah** (`v0.1.0 — Genesis`). Tell me what you want this app to become, or pick one of the evolution suggestions.",
       "mutationBadge": "Genesis v0.1.0 initialized"
+    },
+    {
+      "id": "msg-issue-1-user",
+      "role": "user",
+      "author": "You (via iPhone Bridge #1)",
+      "timestamp": "Just now",
+      "content": "Move chat window to the top"
+    },
+    {
+      "id": "msg-issue-1-ag",
+      "role": "assistant",
+      "author": "Antigravity",
+      "timestamp": "Just now",
+      "content": "Received your iPhone prompt (`Issue #1`) and evolved **hellyeah** to `v0.2.0`:\n\n- **Moved the Evolution Chat Console (`#antigravity-console`) to the very top** of the workspace (`index.html` & `style.css`), directly above the Live Application Stage in all modes (`mode-genesis` and `mode-evolved`).\n- Placed the **Prompt Input Box** and **Suggested Evolutions** right in the top console so they are immediately accessible on your iPhone without scrolling.",
+      "mutationBadge": "v0.2.0 • Moved Chat Window to Top (#1)"
     }
   ],
   "suggestions": [
@@ -22,32 +39,37 @@
       "id": "sug-1",
       "title": "Personal Command Deck & Pomodoro Studio",
       "category": "Productivity",
-      "description": "Add a tactile focus timer, daily intent tracker, and ambient sound synthesizer directly onto the stage.",
-      "prompt": "Evolve the stage into a Personal Command Deck with a tactile Pomodoro focus timer, a quick task queue with keyboard shortcuts, and a live session streak tracker."
+      "description": "Add a tactile focus timer and daily intent queue directly below the top chat window.",
+      "prompt": "Evolve the stage into a Personal Command Deck with a tactile Pomodoro focus timer and task queue."
     },
     {
       "id": "sug-2",
-      "title": "Interactive Synth & Generative Audio Pad",
+      "title": "Interactive Synth & Touch XY Audio Pad",
       "category": "Creative Tool",
-      "description": "Turn the canvas into a playable WebAudio polyphonic XY pad with real-time waveform visualization.",
-      "prompt": "Add a playable WebAudio synthesizer and XY expression pad with live oscilloscope visuals and preset chords."
+      "description": "Add a playable WebAudio polyphonic XY pad with iPhone touch expression below the chat.",
+      "prompt": "Add a playable WebAudio synthesizer and XY expression pad with preset chords."
     },
     {
       "id": "sug-3",
-      "title": "Live Markdown & Idea Graph Scratchpad",
-      "category": "Knowledge",
-      "description": "Create interconnected thought cards that auto-save to disk and link concepts visually.",
-      "prompt": "Build an interactive spatial note-taking board where I can create, drag, filter, and link thought cards that persist to disk."
+      "title": "Collapsible Compact Chat Mode",
+      "category": "UI Layout",
+      "description": "Add a 1-tap toggle to collapse/expand the chat history and suggestions tray on iPhone.",
+      "prompt": "Add a 1-tap collapse/expand toggle to the top chat window so I can minimize chat history when using the stage."
     },
     {
       "id": "sug-4",
-      "title": "Real-Time System & Codebase Inspector",
-      "category": "Meta / Dev",
-      "description": "Let the app inspect its own source files in /home/antigravity/hellyeah and edit its own CSS variables live.",
-      "prompt": "Add a live self-inspector module that displays the files inside /home/antigravity/hellyeah and lets me tweak the app's live theme tokens and layout."
+      "title": "Live Markdown & Idea Graph Scratchpad",
+      "category": "Knowledge",
+      "description": "Create interconnected thought cards that persist on your device.",
+      "prompt": "Build an interactive spatial note-taking board where I can create and link thought cards."
     }
   ],
   "changelog": [
+    {
+      "version": "0.2.0",
+      "timestamp": "Issue #1",
+      "summary": "Moved Evolution Chat Console (#antigravity-console) and prompt input to the top of the app across all modes."
+    },
     {
       "version": "0.1.0",
       "timestamp": "Genesis",
