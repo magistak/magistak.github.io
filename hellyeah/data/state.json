@@ -1,62 +1,19 @@
 {
   "appName": "hellyeah",
-  "version": "0.6.1",
-  "codeVersion": "0.6.1",
-  "cloudRevision": 7,
-  "stageName": "Multi-Model Gemini 3 + Antigravity Studio",
-  "activeTheme": "atelier-dark",
-  "evolutionCount": 7,
+  "version": "1.0.0",
+  "codeVersion": "1.0.0",
+  "cloudRevision": 8,
+  "stageName": "Gemini Chat × Antigravity Tool",
+  "activeTheme": "gemini-dark",
+  "evolutionCount": 8,
   "agentStatus": "connected",
-  "messages": [
-    {
-      "id": "msg-u-6",
-      "role": "user",
-      "author": "You (iPhone)",
-      "timestamp": "14:43",
-      "content": "I saved the key. Let's try it. Maybe you'll need to use newer model?"
-    },
-    {
-      "id": "msg-a-6",
-      "role": "assistant",
-      "author": "Antigravity",
-      "timestamp": "14:50",
-      "content": "Upgraded to **`v0.6.1`**! Two improvements are now live:\n1. **Newest Gemini Models + Selector**: Auto-tries `gemini-3-flash-preview` first, falling back to `gemini-2.5-flash` / `gemini-2.5-pro` (plus a live model dropdown & **⚡ Test Gemini** button right on the stage).\n2. **Zero-Reload Hot Interceptor**: Attached a capture-phase listener inside `stage-custom.js` so even if Safari cached an older `app.js`, your chat messages immediately hit Gemini first!",
-      "mutationBadge": "v0.6.1 • Gemini 3 Flash + Hot Interceptor (#6)"
-    }
-  ],
-  "suggestions": [
-    {
-      "id": "sug-1",
-      "title": "Test Gemini 3 Flash Direct Reply",
-      "category": "Gemini (<1s)",
-      "description": "Ask Gemini which model it is running on and have it answer immediately.",
-      "prompt": "Hey Gemini! Which exact model are you running on right now, and give me 3 wild ideas for this app?"
-    },
-    {
-      "id": "sug-2",
-      "title": "Instant Live Stage Widget via Gemini",
-      "category": "Gemini UI Mutation",
-      "description": "Have Gemini inject a live interactive tool card directly onto the stage in <1s.",
-      "prompt": "Build a sleek interactive BPM tap-tempo & frequency calculator card right on the stage."
-    },
-    {
-      "id": "sug-3",
-      "title": "Test Handoff to Antigravity VM",
-      "category": "Escalation",
-      "description": "Ask Gemini to escalate a permanent repo task to Antigravity.",
-      "prompt": "Ask Antigravity to add a persistent soundscape preset library to the repository."
-    }
-  ],
+  "messages": [],
+  "suggestions": [],
   "changelog": [
     {
-      "version": "0.6.1",
-      "timestamp": "14:50",
-      "summary": "Added gemini-3-flash-preview / gemini-2.5-flash / gemini-2.5-pro multi-model router, model selector, and capture-phase hot interceptor (#6)."
-    },
-    {
-      "version": "0.6.0",
-      "timestamp": "14:04",
-      "summary": "Added Gemini 2.5 Flash first-responder router (#5)."
+      "version": "1.0.0",
+      "timestamp": "15:00",
+      "summary": "Complete rehaul into native Gemini Chat interface with Antigravity exposed only as a Gemini function-calling tool (call_antigravity)."
     }
   ],
   "modules": []

@@ -1,197 +1,160 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="atelier-dark">
+<html lang="en" data-theme="gemini-dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="hellyeah" />
-  <meta name="theme-color" content="#0f1115" />
-  <title>hellyeah — Self-Evolving Application Studio</title>
-  <meta name="description" content="A mobile-first self-evolving application workspace linked to Antigravity. Type what you want in the chat or tap a suggestion to mutate the live app." />
+  <meta name="theme-color" content="#131314" />
+  <title>Gemini × Antigravity — hellyeah</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link id="main-stylesheet" rel="stylesheet" href="./style.css?v=0.4.0" />
-  <link id="custom-stylesheet" rel="stylesheet" href="./custom.css?v=0.4.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link id="main-stylesheet" rel="stylesheet" href="./style.css?v=1.0.0" />
+  <link id="custom-stylesheet" rel="stylesheet" href="./custom.css?v=1.0.0" />
 </head>
-<body>
-  <div id="app-shell" class="app-shell mode-genesis">
-    <!-- Compact Mobile-First Studio Header -->
-    <header id="studio-header" class="studio-header">
-      <div class="brand-cluster">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <h1 id="app-title" class="app-title">hellyeah</h1>
-        <span id="version-badge" class="mono-tag">v0.3.0</span>
-        <span id="mutation-counter" class="mono-tag subtle hide-xs">2 mutations</span>
-        <span id="stage-subtitle" class="stage-subtitle hide-mobile">Mobile-First Studio</span>
+<body data-ui-rehaul="v1.0">
+  <div id="gemini-app" class="gemini-app">
+    <!-- Top Gemini Mobile Bar -->
+    <header class="gemini-header">
+      <div class="gemini-brand">
+        <span class="gemini-sparkle" aria-hidden="true">✦</span>
+        <div class="gemini-title-stack">
+          <span class="gemini-title">Gemini</span>
+          <select id="model-picker" class="model-picker" aria-label="Select Gemini Model">
+            <option value="auto">Auto (2.5 Flash / 3 Flash)</option>
+            <option value="gemini-2.5-flash">2.5 Flash</option>
+            <option value="gemini-3-flash-preview">3 Flash Preview</option>
+            <option value="gemini-2.5-pro">2.5 Pro</option>
+            <option value="gemini-2.0-flash">2.0 Flash</option>
+          </select>
+        </div>
       </div>
 
-      <nav class="studio-controls" aria-label="Workspace controls">
-        <button id="open-bridge-btn" class="connection-status" type="button" title="Configure live GitHub Bridge to Antigravity VM">
-          <span id="status-dot" class="status-dot connected"></span>
-          <span id="status-label" class="status-label">Bridge</span>
+      <div class="gemini-header-actions">
+        <button id="clear-chat-btn" class="icon-btn" type="button" title="New Chat">
+          <span>New</span>
         </button>
-
-        <button id="toggle-inspector-btn" class="header-action-btn" type="button" title="Inspect live source files and evolution changelog">
-          <span>Log</span>
+        <button id="open-settings-btn" class="icon-btn settings-pill" type="button" title="API Keys &amp; Antigravity Tool Settings">
+          <span id="key-dot" class="key-dot"></span>
+          <span>Keys</span>
         </button>
-
-        <button id="toggle-theme-btn" class="header-action-btn" type="button" title="Toggle studio color theme">
-          <span id="theme-btn-label">Theme</span>
-        </button>
-      </nav>
+      </div>
     </header>
 
-    <!-- Main Evolving Workspace (Mobile-First Top Chat + Stage Below) -->
-    <main id="workspace-main" class="workspace-main chat-at-top">
-      <!-- Antigravity Chat & Evolution Suggestions Interface (TOP) -->
-      <section id="antigravity-console" class="antigravity-console" aria-label="Antigravity Evolution Chat">
-        <!-- Sleek Mobile Composer Bar at the Very Top -->
-        <form id="chat-form" class="chat-form" autocomplete="off">
-          <div class="composer-bar">
-            <textarea
-              id="chat-input"
-              class="chat-input"
-              rows="1"
-              placeholder="Tell hellyeah how to evolve..."
-              aria-label="Evolution prompt for Antigravity"
-              required
-            ></textarea>
-            <button id="send-prompt-btn" class="send-prompt-btn" type="submit">
-              <span id="send-btn-text">Evolve</span>
-            </button>
-          </div>
-          <div class="composer-meta-row">
-            <span id="mutation-hint" class="mutation-hint">Live iPhone &rarr; Antigravity Bridge</span>
-            <button id="toggle-chat-history-btn" class="text-link-btn" type="button">Chat History</button>
-          </div>
-        </form>
+    <!-- Main Scrollable Gemini Chat Stream -->
+    <main id="chat-viewport" class="chat-viewport">
+      <!-- Empty / Welcome Screen -->
+      <div id="welcome-screen" class="welcome-screen">
+        <div class="welcome-sparkle">✦</div>
+        <h1 class="welcome-heading">Hello, how can I help?</h1>
+        <p class="welcome-subtext">
+          Chat directly with Gemini. When you want to modify or evolve this app, Gemini can invoke <code>call_antigravity</code> as a tool.
+        </p>
 
-        <!-- Horizontal Swipeable Suggestions Carousel -->
-        <section id="suggestions-tray" class="suggestions-tray" aria-label="Suggested evolutions">
-          <div class="suggestions-header">
-            <span class="suggestions-label">Tap an idea to evolve</span>
-            <button id="shuffle-suggestions-btn" class="text-link-btn" type="button">More ideas &rarr;</button>
-          </div>
-          <div id="suggestions-list" class="suggestions-list">
-            <!-- Suggestion cards rendered dynamically -->
-          </div>
-        </section>
-
-        <!-- Compact Chat Message Stream -->
-        <div id="chat-messages" class="chat-messages" role="log" aria-live="polite">
-          <!-- Messages rendered dynamically -->
-        </div>
-      </section>
-
-      <!-- Dynamic Stage (BELOW CHAT) -->
-      <section id="live-stage-panel" class="live-stage-panel" aria-label="Evolved application stage">
-        <div class="stage-toolbar">
-          <div class="stage-toolbar-left">
-            <span class="section-eyebrow">LIVE STAGE</span>
-            <h2 id="active-stage-heading" class="stage-heading">Mobile-First Canvas</h2>
-          </div>
-          <div class="stage-toolbar-right">
-            <button id="reset-stage-btn" class="ghost-btn" type="button">Reset</button>
+        <!-- Inline Quick Setup if Gemini Key is Missing -->
+        <div id="missing-key-banner" class="missing-key-card hidden">
+          <div class="missing-key-title">Paste your Gemini API Key to start chatting</div>
+          <p class="missing-key-desc">Stored locally in your iPhone's <code>localStorage</code>. Never sent anywhere except Google's Gemini API.</p>
+          <div class="key-input-row">
+            <input type="password" id="welcome-gemini-key" class="key-input" placeholder="AIzaSy..." autocomplete="off" />
+            <button id="welcome-save-key-btn" class="save-btn" type="button">Start</button>
           </div>
         </div>
 
-        <div id="modules-container" class="modules-container">
-          <!-- Populated dynamically as the app evolves -->
+        <div class="starter-chips">
+          <button type="button" class="starter-chip" data-prompt="Hey! What model are you running on, and what tools do you have access to?">
+            <span class="chip-title">Check model &amp; tools</span>
+            <span class="chip-sub">Ask Gemini directly</span>
+          </button>
+          <button type="button" class="starter-chip" data-prompt="Brainstorm 3 creative mini-apps we could turn this page into.">
+            <span class="chip-title">Brainstorm ideas</span>
+            <span class="chip-sub">Pure Gemini chat</span>
+          </button>
+          <button type="button" class="starter-chip" data-prompt="Use your Antigravity tool to add a sleek interactive audio synth widget to the app.">
+            <span class="chip-title">Invoke Antigravity tool</span>
+            <span class="chip-sub">Triggers call_antigravity()</span>
+          </button>
         </div>
-      </section>
+      </div>
+
+      <!-- Conversation Thread -->
+      <div id="messages-thread" class="messages-thread" role="log" aria-live="polite"></div>
+
+      <!-- Optional Live App Widget Container (when Gemini or Antigravity injects UI) -->
+      <div id="live-widget-dock" class="live-widget-dock hidden"></div>
     </main>
 
-    <!-- Slide-over Drawer: Live Source Files & Evolution Changelog -->
-    <aside id="inspector-drawer" class="inspector-drawer hidden" aria-label="Live Source and Evolution Log">
-      <div class="drawer-header">
-        <div>
-          <span class="section-eyebrow">SELF-INSPECTION</span>
-          <h2 class="drawer-title">Workspace Files &amp; Mutation History</h2>
+    <!-- Bottom Sticky Gemini Composer -->
+    <footer class="gemini-composer-wrap">
+      <form id="gemini-form" class="gemini-composer" autocomplete="off">
+        <textarea
+          id="gemini-input"
+          class="gemini-input"
+          rows="1"
+          placeholder="Ask Gemini..."
+          aria-label="Ask Gemini"
+        ></textarea>
+        <button id="gemini-send-btn" class="gemini-send-btn" type="submit" aria-label="Send message">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </form>
+      <div class="composer-footnote">
+        <span id="tool-status-label">Gemini direct chat • Antigravity tool enabled</span>
+      </div>
+    </footer>
+
+    <!-- Settings Sheet (API Keys & Tool Configuration) -->
+    <aside id="settings-sheet" class="settings-sheet hidden" aria-label="Settings">
+      <div class="sheet-backdrop" id="sheet-backdrop"></div>
+      <div class="sheet-panel">
+        <div class="sheet-header">
+          <h2>Keys &amp; Antigravity Tool</h2>
+          <button id="close-settings-btn" class="icon-btn" type="button">Done</button>
         </div>
-        <button id="close-inspector-btn" class="ghost-btn" type="button">Close</button>
-      </div>
 
-      <div class="drawer-content">
-        <section class="drawer-section">
-          <h3 class="drawer-subtitle">Evolution Changelog</h3>
-          <div id="changelog-list" class="changelog-list"></div>
-        </section>
-
-        <section class="drawer-section">
-          <h3 class="drawer-subtitle">Live Files in <code>/home/antigravity/hellyeah</code></h3>
-          <div id="file-tabs" class="file-tabs"></div>
-          <pre id="file-code-preview" class="file-code-preview"><code>Loading workspace files...</code></pre>
-        </section>
-      </div>
-    </aside>
-
-    <!-- GitHub Bridge Modal for iPhone -> Antigravity VM Direct Link -->
-    <aside id="bridge-modal" class="inspector-drawer hidden" aria-label="Antigravity GitHub Bridge Settings">
-      <div class="drawer-header">
-        <div>
-          <span class="section-eyebrow">IPHONE &rarr; ANTIGRAVITY VM BRIDGE</span>
-          <h2 class="drawer-title">Live GitHub Bridge Settings</h2>
-        </div>
-        <button id="close-bridge-btn" class="ghost-btn" type="button">Close</button>
-      </div>
-
-      <div class="drawer-content">
-        <section class="drawer-section">
-          <h3 class="drawer-subtitle">How the iPhone Bridge Works</h3>
-          <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:0.85rem;">
-            When you type in the chat on <code>magistak.github.io/hellyeah</code>, your prompt is sent to <code>magistak/magistak.github.io</code> where Antigravity's live watcher picks it up, rewrites the app's source code, and pushes the update back to your iPhone.
-          </p>
-
-          <div class="arch-item" style="margin-bottom:1rem;">
-            <strong>1. Gemini First-Responder Router Key (Instant &lt;1s)</strong>
-            <span style="display:block;margin:0.35rem 0 0.65rem;">
-              Saved <em>only</em> in your iPhone's <code>localStorage</code>. Every message goes to Gemini first—it either answers/evolves the UI immediately or routes deep repo tasks to Antigravity.
-            </span>
-            <div class="task-add-row">
-              <input
-                type="password"
-                id="gemini-key-input"
-                class="stage-text-input"
-                placeholder="Paste AIzaSy... Gemini API key"
-              />
-              <button id="save-gemini-key-btn" class="primary-pill-btn" type="button">Save</button>
+        <div class="sheet-body">
+          <div class="setting-group">
+            <label for="settings-gemini-key">Gemini API Key (Primary Chat)</label>
+            <p class="setting-hint">All messages go directly to Gemini using this key.</p>
+            <div class="key-input-row">
+              <input type="password" id="settings-gemini-key" class="key-input" placeholder="AIzaSy..." autocomplete="off" />
+              <button id="save-gemini-btn" class="save-btn" type="button">Save</button>
             </div>
-            <span id="gemini-key-status" class="mono-tag subtle" style="display:inline-block;margin-top:0.5rem;">No Gemini key saved yet</span>
+            <div id="gemini-status-msg" class="setting-status"></div>
           </div>
 
-          <div class="arch-item" style="margin-bottom:1rem;">
-            <strong>2. GitHub Bridge Token (Antigravity VM Link)</strong>
-            <span style="display:block;margin:0.35rem 0 0.65rem;">
-              Your GitHub token is saved <em>only</em> in your iPhone's <code>localStorage</code> for escalating repo tasks to Antigravity.
-            </span>
-            <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap;">
-              <a
-                href="https://github.com/settings/tokens/new?description=hellyeah-iphone-bridge&scopes=public_repo"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="ghost-btn"
-                style="text-decoration:none;display:inline-block;"
-              >Generate GitHub Token &nearr;</a>
+          <div class="setting-group">
+            <label for="settings-gh-token">GitHub Token (Used only by <code>call_antigravity</code> tool)</label>
+            <p class="setting-hint">Only used when Gemini decides to call the <code>call_antigravity</code> tool to edit the repo.</p>
+            <div class="key-input-row">
+              <input type="password" id="settings-gh-token" class="key-input" placeholder="ghp_... or github_pat_..." autocomplete="off" />
+              <button id="save-gh-btn" class="save-btn" type="button">Save</button>
             </div>
-            <div class="task-add-row">
-              <input
-                type="password"
-                id="gh-token-input"
-                class="stage-text-input"
-                placeholder="Paste ghp_... or github_pat_... token here"
-              />
-              <button id="save-gh-token-btn" class="primary-pill-btn" type="button">Save</button>
-            </div>
-            <span id="gh-token-status" class="mono-tag subtle" style="display:inline-block;margin-top:0.5rem;">Checking token status...</span>
+            <div id="gh-status-msg" class="setting-status"></div>
           </div>
-        </section>
+
+          <div class="setting-group">
+            <label>Theme</label>
+            <div class="key-input-row">
+              <button id="theme-toggle-btn" class="icon-btn" type="button" style="width:100%;justify-content:center;padding:0.6rem;">
+                Toggle Dark / Light Mode
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
   </div>
 
-  <script src="./stage-custom.js?v=0.6.0"></script>
-  <script src="./app.js?v=0.6.0"></script>
+  <script src="./stage-custom.js?v=1.0.0"></script>
+  <script src="./app.js?v=1.0.0"></script>
 </body>
 </html>

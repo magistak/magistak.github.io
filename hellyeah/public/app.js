@@ -1,82 +1,90 @@
-(() => {
-  let appState = null;
-  let workspaceFiles = [];
-  let selectedFilePath = 'data/state.json';
+(function () {
+  'use strict';
 
-  // Pomodoro local runtime state
-  let timerSeconds = 25 * 60;
-  let timerInterval = null;
-  let timerRunning = false;
+  window.HELLEVO_UI_VERSION = '1.0.0';
 
-  // WebAudio synth runtime state
-  let audioCtx = null;
-  let activeOsc = null;
-  let activeGain = null;
-  let activeFilter = null;
+  const STORAGE_CHAT_KEY = 'hellyeah_gemini_chat_v1';
+  const STORAGE_GEMINI_KEY = 'hellyeah_gemini_key';
+  const STORAGE_GH_TOKEN = 'hellyeah_gh_token';
+  const STORAGE_MODEL_KEY = 'hellyeah_gemini_model';
+  const STORAGE_THEME_KEY = 'hellyeah_gemini_theme';
 
-  const EXTRA_SUGGESTION_POOLS = [
-    [
-      {
-        id: 'pool-1',
-        title: 'Habit & Daily Ritual Matrix',
-        category: 'Life OS',
-        description: 'Build a tactile 7-day streak grid to track daily rituals and deep work blocks.',
-        prompt: 'Evolve the stage with a Daily Ritual & Habit Streak Matrix with interactive check-ins.'
-      },
-      {
-        id: 'pool-2',
-        title: 'Markdown Live Zettelkasten',
-        category: 'Writing',
-        description: 'Turn the stage into a distraction-free networked note studio.',
-        prompt: 'Build an interactive spatial note-taking board where I can create, filter, and link thought cards.'
-      },
-      {
-        id: 'pool-3',
-        title: 'Polyphonic XY WebAudio Synth',
-        category: 'Audio Lab',
-        description: 'Playable 2D sound pad with harmonic chords and filter sweeps.',
-        prompt: 'Add a playable WebAudio synthesizer and XY expression pad with preset chords.'
-      },
-      {
-        id: 'pool-4',
-        title: 'Warm Alabaster Paper Theme',
-        category: 'Design System',
-        description: 'Mutate the color tokens into an editorial warm parchment aesthetic.',
-        prompt: 'Switch the theme to a warm alabaster paper editorial aesthetic.'
-      }
-    ],
-    [
-      {
-        id: 'pool-5',
-        title: 'Personal Command Deck & Pomodoro',
-        category: 'Focus',
-        description: 'Tactile focus timer paired with a live keyboard-driven task queue.',
-        prompt: 'Evolve the stage into a Personal Command Deck with a tactile Pomodoro focus timer and task queue.'
-      },
-      {
-        id: 'pool-6',
-        title: 'Self-Inspecting Codebase Explorer',
-        category: 'Meta / Dev',
-        description: 'Embed a live source inspector showing files inside /home/antigravity/hellyeah.',
-        prompt: 'Add a live self-inspector module that displays the files inside /home/antigravity/hellyeah.'
-      },
-      {
-        id: 'pool-7',
-        title: 'Decision Matrix & Weighted Scorer',
-        category: 'Strategy',
-        description: 'Compare architecture or product trade-offs with interactive sliders.',
-        prompt: 'Build an interactive Decision Matrix calculator to score and rank project ideas.'
-      },
-      {
-        id: 'pool-8',
-        title: 'Reset Stage to Genesis Seed',
-        category: 'System',
-        description: 'Clear active stage modules and return to a clean Genesis canvas.',
-        prompt: 'Clear the stage and reset back to the Genesis slate.'
-      }
-    ]
+  const MODEL_FALLBACK_CHAIN = [
+    'gemini-2.5-flash',
+    'gemini-3-flash-preview',
+    'gemini-2.5-pro',
+    'gemini-2.0-flash'
   ];
-  let poolIndex = 0;
+
+  const GEMINI_TOOLS = [
+    {
+      functionDeclarations: [
+        {
+          name: 'call_antigravity',
+          description:
+            'Invoke Antigravity (the autonomous full-stack coding agent running in a Linux VM connected to this app repository) to modify the web application source code, add permanent features, or evolve the codebase. ONLY call this tool when the user asks to change/build/evolve the app or explicitly asks you to use Antigravity.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              instruction: {
+                type: 'STRING',
+                description: 'Detailed prompt/instruction for Antigravity describing what to change or build in the app.'
+              },
+              summary: {
+                type: 'STRING',
+                description: 'Brief 3-7 word summary of the task.'
+              }
+            },
+            required: ['instruction', 'summary']
+          }
+        },
+        {
+          name: 'render_live_widget',
+          description:
+            'Render an instant interactive HTML/CSS widget or preview card directly inside the chat without waiting for a repository build.',
+          parameters: {
+            type: 'OBJECT',
+            properties: {
+              title: { type: 'STRING', description: 'Widget title' },
+              html: { type: 'STRING', description: 'HTML markup for the widget' },
+              css: { type: 'STRING', description: 'Optional CSS rules for the widget' }
+            },
+            required: ['title', 'html']
+          }
+        }
+      ]
+    }
+  ];
+
+  const SYSTEM_INSTRUCTION = [
+    'You are Gemini, the AI assistant inside "hellyeah" on the user\'s iPhone.',
+    'By default, chat naturally, directly, and concisely with the user like the official Gemini app.',
+    'You have access to two tools:',
+    '1. `call_antigravity(instruction, summary)`: Calls Antigravity, the autonomous coding agent running in a remote Linux VM connected to this app\'s GitHub repo (`magistak/magistak.github.io`). Call `call_antigravity` ONLY when the user wants to permanently modify/evolve the app\'s codebase or explicitly asks you to invoke Antigravity.',
+    '2. `render_live_widget(title, html, css)`: Instantly renders an interactive HTML/CSS mini-widget right inside the chat.',
+    'Never call `call_antigravity` for normal greetings, general questions, or casual conversation—just answer directly.'
+  ].join('\n');
+
+  let chatMessages = [];
+  let isSending = false;
+
+  function loadSavedChat() {
+    try {
+      const raw = localStorage.getItem(STORAGE_CHAT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) chatMessages = parsed;
+      }
+    } catch (e) {
+      chatMessages = [];
+    }
+  }
+
+  function saveChat() {
+    try {
+      localStorage.setItem(STORAGE_CHAT_KEY, JSON.stringify(chatMessages.slice(-40)));
+    } catch (e) {}
+  }
 
   function escapeHTML(str) {
     return String(str || '')
@@ -86,873 +94,241 @@
       .replace(/"/g, '&quot;');
   }
 
-  function formatMarkdownLite(text) {
-    return escapeHTML(text)
-      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\n/g, '<br/>');
+  function formatMarkdown(md) {
+    if (!md) return '';
+    let html = escapeHTML(md);
+    // Code blocks
+    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, lang, code) {
+      return '<pre><code>' + code.trim() + '</code></pre>';
+    });
+    // Inline code
+    html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+    // Bold
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // Italic
+    html = html.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+    // Paragraphs
+    return html
+      .split(/\n{2,}/)
+      .map((p) => '<p>' + p.replace(/\n/g, '<br/>') + '</p>')
+      .join('');
   }
 
-  const FALLBACK_INITIAL_STATE = {
-    appName: 'hellyeah',
-    subtitle: 'Self-Evolving Workspace • Connected to Antigravity',
-    version: '0.1.0',
-    stageName: 'Genesis Seed',
-    evolutionCount: 0,
-    agentStatus: 'connected',
-    agentStatusText: 'Linked to Antigravity (iPhone / Cloud Mode)',
-    activeTheme: 'atelier-dark',
-    messages: [
-      {
-        id: 'msg-genesis-1',
-        role: 'assistant',
-        author: 'Antigravity',
-        timestamp: 'Genesis',
-        content: 'Welcome to **hellyeah** (`v0.1.0 — Genesis`). Right now, this app is a clean slate—just our live communication link and an open stage.\n\nTell me what you want this app to become, or tap one of the evolution suggestions below to mutate the interface in real time.',
-        mutationBadge: 'Genesis v0.1.0 initialized'
-      }
-    ],
-    suggestions: [
-      {
-        id: 'sug-1',
-        title: 'Personal Command Deck & Pomodoro Studio',
-        category: 'Productivity',
-        description: 'Add a tactile focus timer, daily intent tracker, and task queue directly onto the stage.',
-        prompt: 'Evolve the stage into a Personal Command Deck with a tactile Pomodoro focus timer and task queue.'
-      },
-      {
-        id: 'sug-2',
-        title: 'Interactive Synth & Generative Audio Pad',
-        category: 'Creative Tool',
-        description: 'Turn the canvas into a playable WebAudio polyphonic XY pad with touch expression.',
-        prompt: 'Add a playable WebAudio synthesizer and XY expression pad with preset chords.'
-      },
-      {
-        id: 'sug-3',
-        title: 'Live Markdown & Idea Graph Scratchpad',
-        category: 'Knowledge',
-        description: 'Create interconnected thought cards that persist on your device.',
-        prompt: 'Build an interactive spatial note-taking board where I can create and link thought cards.'
-      },
-      {
-        id: 'sug-4',
-        title: 'Real-Time System & Codebase Inspector',
-        category: 'Meta / Dev',
-        description: 'Inspect the source architecture and tweak the live theme tokens.',
-        prompt: 'Add a live self-inspector module that displays the workspace architecture and theme tokens.'
-      }
-    ],
-    changelog: [
-      {
-        version: '0.1.0',
-        timestamp: 'Genesis',
-        summary: 'Initialized hellyeah core with Antigravity chat console, suggestion engine, and modular stage.'
-      }
-    ],
-    modules: []
-  };
+  function updateKeyIndicators() {
+    const geminiKey = (localStorage.getItem(STORAGE_GEMINI_KEY) || '').trim();
+    const ghToken = (localStorage.getItem(STORAGE_GH_TOKEN) || '').trim();
 
-  function clientSynthesizeEvolution(promptText, currentState) {
-    const state = JSON.parse(JSON.stringify(currentState || FALLBACK_INITIAL_STATE));
-    const lower = promptText.toLowerCase();
-    const parts = String(state.version || '0.1.0').split('.').map(Number);
-    parts[1] = (parts[1] || 0) + 1;
-    const nextVersion = parts.join('.');
-    state.version = nextVersion;
-    state.evolutionCount = (state.evolutionCount || 0) + 1;
-    state.modules = Array.isArray(state.modules) ? state.modules : [];
-
-    let addedModule = null;
-    let replyContent = '';
-    let mutationBadge = `v${nextVersion} • Stage Evolved`;
-
-    if (lower.includes('pomodoro') || lower.includes('command deck') || lower.includes('timer') || lower.includes('focus')) {
-      addedModule = {
-        id: 'mod-command-deck-' + Date.now(),
-        type: 'command-deck',
-        title: 'Tactile Focus & Command Deck',
-        version: nextVersion,
-        config: {
-          tasks: [
-            { id: 't1', text: 'Define next evolution for hellyeah on iPhone', done: false, tag: 'Mobile' },
-            { id: 't2', text: 'Test live touch interactions', done: true, tag: 'System' }
-          ]
-        }
-      };
-      state.stageName = 'Personal Command Deck';
-      replyContent = `Evolved **hellyeah** to \`v${nextVersion}\` with the **Tactile Focus & Command Deck**.`;
-      mutationBadge = `v${nextVersion} • Added Command Deck`;
-    } else if (lower.includes('synth') || lower.includes('audio') || lower.includes('music') || lower.includes('sound') || lower.includes('xy')) {
-      addedModule = {
-        id: 'mod-synth-pad-' + Date.now(),
-        type: 'synth-pad',
-        title: 'Polyphonic XY WebAudio Synthesizer',
-        version: nextVersion,
-        config: {}
-      };
-      state.stageName = 'Harmonic Audio Lab';
-      replyContent = `Evolved **hellyeah** to \`v${nextVersion}\` with the **Polyphonic XY WebAudio Synthesizer**. Slide your finger across the pad or tap chords!`;
-      mutationBadge = `v${nextVersion} • Added WebAudio XY Synth`;
-    } else if (lower.includes('note') || lower.includes('idea') || lower.includes('scratchpad') || lower.includes('board') || lower.includes('card')) {
-      addedModule = {
-        id: 'mod-idea-board-' + Date.now(),
-        type: 'idea-board',
-        title: 'Spatial Idea & Knowledge Matrix',
-        version: nextVersion,
-        config: {
-          cards: [
-            { id: 'c1', title: 'Self-Modifying UI', body: 'Every prompt in the chat mutates the application stage.', tag: 'Core' },
-            { id: 'c2', title: 'iPhone Ready', body: 'Supports touch gestures, safe-area insets, and Home Screen web app mode.', tag: 'iOS' }
-          ]
-        }
-      };
-      state.stageName = 'Knowledge & Idea Studio';
-      replyContent = `Evolved **hellyeah** to \`v${nextVersion}\` with the **Spatial Idea & Knowledge Matrix**.`;
-      mutationBadge = `v${nextVersion} • Added Spatial Idea Matrix`;
-    } else if (lower.includes('inspect') || lower.includes('code') || lower.includes('system') || lower.includes('file') || lower.includes('meta')) {
-      addedModule = {
-        id: 'mod-inspector-' + Date.now(),
-        type: 'system-inspector',
-        title: 'Live Workspace & Theme Token Inspector',
-        version: nextVersion,
-        config: {}
-      };
-      state.stageName = 'Self-Inspector Studio';
-      replyContent = `Evolved **hellyeah** to \`v${nextVersion}\` with the **Live Workspace & Theme Token Inspector**.`;
-      mutationBadge = `v${nextVersion} • Added Self-Inspector`;
-    } else if (lower.includes('light') || lower.includes('paper') || lower.includes('alabaster') || lower.includes('theme')) {
-      state.activeTheme = state.activeTheme === 'atelier-light' ? 'atelier-dark' : 'atelier-light';
-      replyContent = `Mutated the visual design system to **${state.activeTheme === 'atelier-light' ? 'Warm Alabaster Paper' : 'Obsidian Atelier'}** (\`v${nextVersion}\`).`;
-      mutationBadge = `v${nextVersion} • Theme Mutated`;
-    } else if (lower.includes('clear') || lower.includes('reset')) {
-      state.modules = [];
-      state.stageName = 'Genesis Seed';
-      replyContent = `Cleared the stage modules and reset the canvas to a fresh Genesis slate (\`v${nextVersion}\`).`;
-      mutationBadge = `v${nextVersion} • Stage Reset`;
-    } else {
-      addedModule = {
-        id: 'mod-custom-' + Date.now(),
-        type: 'custom-applet',
-        title: promptText.length > 48 ? promptText.slice(0, 45) + '...' : promptText,
-        prompt: promptText,
-        version: nextVersion,
-        config: {
-          items: [
-            { id: 'item-1', label: `Primary workflow: "${promptText}"`, status: 'Active' },
-            { id: 'item-2', label: 'Interactive state synced', status: 'Ready' }
-          ]
-        }
-      };
-      state.stageName = 'Custom Evolved Workspace';
-      replyContent = `Evolved **hellyeah** (\`v${nextVersion}\`) for:\n> *"${promptText}"*`;
-      mutationBadge = `v${nextVersion} • Custom Evolution`;
+    const keyDot = document.getElementById('key-dot');
+    if (keyDot) {
+      keyDot.classList.toggle('ready', Boolean(geminiKey));
     }
 
-    if (addedModule) {
-      state.modules = [addedModule, ...state.modules.filter(m => m.type !== addedModule.type)];
+    const missingBanner = document.getElementById('missing-key-banner');
+    if (missingBanner) {
+      missingBanner.classList.toggle('hidden', Boolean(geminiKey));
     }
 
-    const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    state.messages.push({ id: 'msg-u-' + Date.now(), role: 'user', author: 'You', timestamp: nowStr, content: promptText });
-    state.messages.push({ id: 'msg-a-' + Date.now(), role: 'assistant', author: 'Antigravity', timestamp: nowStr, content: replyContent, mutationBadge });
-    state.changelog = [{ version: nextVersion, timestamp: nowStr, summary: `${mutationBadge} — "${promptText.slice(0, 60)}"` }, ...(state.changelog || [])];
-    state.agentStatus = 'connected';
-    try { localStorage.setItem('hellyeah_state', JSON.stringify(state)); } catch (e) {}
-    return state;
+    const geminiInput = document.getElementById('settings-gemini-key');
+    const geminiStatus = document.getElementById('gemini-status-msg');
+    if (geminiInput && geminiKey) geminiInput.value = geminiKey;
+    if (geminiStatus) {
+      geminiStatus.textContent = geminiKey
+        ? '✓ Gemini API Key saved in iPhone localStorage'
+        : 'No Gemini API Key saved yet';
+    }
+
+    const ghInput = document.getElementById('settings-gh-token');
+    const ghStatus = document.getElementById('gh-status-msg');
+    if (ghInput && ghToken) ghInput.value = ghToken;
+    if (ghStatus) {
+      ghStatus.textContent = ghToken
+        ? '✓ GitHub Token ready for call_antigravity() tool calls'
+        : 'Optional: Needed only when Gemini calls call_antigravity()';
+    }
   }
 
-  async function fetchInitialState() {
-    try {
-      const res = await fetch('./api/state');
-      if (!res.ok) throw new Error('Static mode');
-      const data = await res.json();
-      renderApp(data);
-    } catch (e) {
-      let saved = null;
-      try { saved = JSON.parse(localStorage.getItem('hellyeah_state')); } catch (err) {}
+  function renderThread() {
+    const welcome = document.getElementById('welcome-screen');
+    const thread = document.getElementById('messages-thread');
+    const viewport = document.getElementById('chat-viewport');
+    if (!thread) return;
+
+    if (welcome) {
+      welcome.classList.toggle('hidden', chatMessages.length > 0);
+    }
+
+    thread.innerHTML = chatMessages
+      .map((m) => {
+        if (m.role === 'user') {
+          return `
+            <div class="msg-row user">
+              <div class="msg-bubble">${escapeHTML(m.text)}</div>
+            </div>
+          `;
+        }
+
+        const toolHtml = m.toolCall
+          ? `
+            <div class="tool-call-card" id="tool-card-${escapeHTML(m.id)}">
+              <div class="tool-call-header">
+                <span class="tool-call-title">🛠️ ${escapeHTML(m.toolCall.name)}(${escapeHTML(m.toolCall.summary || '')})</span>
+                <span class="tool-call-badge">${escapeHTML(m.toolCall.status || 'Invoked')}</span>
+              </div>
+              <div class="tool-call-body">${escapeHTML(m.toolCall.instruction || '')}</div>
+              ${m.toolCall.liveStream ? `<div class="tool-call-stream">${formatMarkdown(m.toolCall.liveStream)}</div>` : ''}
+            </div>
+          `
+          : '';
+
+        const widgetHtml = m.widgetHtml
+          ? `<div class="live-widget-dock" style="margin-top:0.55rem;">${m.widgetHtml}</div>`
+          : '';
+
+        return `
+          <div class="msg-row model">
+            <div class="model-header">
+              <span class="sparkle">✦</span>
+              <span>${escapeHTML(m.modelLabel || 'Gemini')}</span>
+            </div>
+            ${toolHtml}
+            ${m.text ? `<div class="msg-bubble">${formatMarkdown(m.text)}</div>` : ''}
+            ${widgetHtml}
+          </div>
+        `;
+      })
+      .join('');
+
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
+    }
+  }
+
+  function buildGeminiContents() {
+    const contents = [];
+    for (const m of chatMessages) {
+      if (m.role === 'user' && m.text) {
+        contents.push({
+          role: 'user',
+          parts: [{ text: m.text }]
+        });
+      } else if (m.role === 'model' && (m.text || m.toolCall)) {
+        const parts = [];
+        if (m.text) parts.push({ text: m.text });
+        if (parts.length > 0) {
+          contents.push({ role: 'model', parts });
+        }
+      }
+    }
+    return contents;
+  }
+
+  async function callSingleModel(modelName, apiKey, contents, enableTools) {
+    const url =
+      'https://generativelanguage.googleapis.com/v1beta/models/' +
+      encodeURIComponent(modelName) +
+      ':generateContent?key=' +
+      encodeURIComponent(apiKey);
+
+    const payload = {
+      systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+      contents,
+      generationConfig: {
+        temperature: 0.6
+      }
+    };
+    if (enableTools) {
+      payload.tools = GEMINI_TOOLS;
+    }
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      let msg = 'HTTP ' + res.status;
       try {
-        const staticRes = await fetch('./data/state.json?t=' + Date.now());
-        if (staticRes.ok) {
-          const staticData = await staticRes.json();
-          const remoteRev = staticData.cloudRevision || staticData.evolutionCount || 0;
-          const localSyncedRev = saved ? (saved.syncedCloudRevision || 0) : -1;
-          if (!saved || remoteRev > localSyncedRev) {
-            staticData.syncedCloudRevision = remoteRev;
-            try { localStorage.setItem('hellyeah_state', JSON.stringify(staticData)); } catch (err) {}
-            renderApp(staticData);
-            return;
-          }
+        const errData = await res.json();
+        if (errData && errData.error && errData.error.message) {
+          msg = errData.error.message;
         }
-      } catch (err) {}
-      renderApp(saved || FALLBACK_INITIAL_STATE);
-    }
-  }
-
-  async function fetchWorkspaceFiles() {
-    try {
-      const res = await fetch('./api/files');
-      if (!res.ok) throw new Error('Static mode');
-      const data = await res.json();
-      workspaceFiles = data.files || [];
-      renderInspectorFiles();
-    } catch (e) {
-      workspaceFiles = [
-        { path: 'data/state.json', preview: JSON.stringify(appState || FALLBACK_INITIAL_STATE, null, 2) }
-      ];
-      renderInspectorFiles();
-    }
-  }
-
-  async function fetchCloudStateDirect() {
-    const token = (localStorage.getItem('hellyeah_gh_token') || '').trim();
-    if (token) {
-      try {
-        const apiRes = await fetch(
-          'https://api.github.com/repos/magistak/magistak.github.io/contents/hellyeah/data/state.json?ref=main&t=' + Date.now(),
-          {
-            headers: {
-              'Accept': 'application/vnd.github.raw+json',
-              'Authorization': 'Bearer ' + token
-            },
-            cache: 'no-store'
-          }
-        );
-        if (apiRes.ok) return await apiRes.json();
       } catch (e) {}
+      const err = new Error(msg);
+      err.status = res.status;
+      throw err;
     }
-    const r = await fetch('./data/state.json?t=' + Date.now(), { cache: 'no-store' });
-    if (r.ok) return await r.json();
-    return null;
+
+    const data = await res.json();
+    return { data, modelName };
   }
 
-  async function applyLiveDeltaAssetsFromAPI() {
-    const token = (localStorage.getItem('hellyeah_gh_token') || '').trim();
-    if (!token) return;
-    try {
-      const cssRes = await fetch(
-        'https://api.github.com/repos/magistak/magistak.github.io/contents/hellyeah/custom.css?ref=main&t=' + Date.now(),
-        { headers: { 'Accept': 'application/vnd.github.raw+json', 'Authorization': 'Bearer ' + token }, cache: 'no-store' }
-      );
-      if (cssRes.ok) {
-        const cssText = await cssRes.text();
-        let dynStyle = document.getElementById('live-api-custom-css');
-        if (!dynStyle) {
-          dynStyle = document.createElement('style');
-          dynStyle.id = 'live-api-custom-css';
-          document.head.appendChild(dynStyle);
+  async function generateGeminiResponse(contents, enableTools = true) {
+    const apiKey = (localStorage.getItem(STORAGE_GEMINI_KEY) || '').trim();
+    const preferred = localStorage.getItem(STORAGE_MODEL_KEY) || 'auto';
+    const chain =
+      preferred === 'auto'
+        ? MODEL_FALLBACK_CHAIN
+        : [preferred, ...MODEL_FALLBACK_CHAIN.filter((m) => m !== preferred)];
+
+    let lastErr = null;
+    for (const modelName of chain) {
+      try {
+        return await callSingleModel(modelName, apiKey, contents, enableTools);
+      } catch (err) {
+        lastErr = err;
+        if (err.message && err.message.toLowerCase().includes('api key not valid')) {
+          throw err;
         }
-        dynStyle.textContent = cssText;
       }
-      const jsRes = await fetch(
-        'https://api.github.com/repos/magistak/magistak.github.io/contents/hellyeah/stage-custom.js?ref=main&t=' + Date.now(),
-        { headers: { 'Accept': 'application/vnd.github.raw+json', 'Authorization': 'Bearer ' + token }, cache: 'no-store' }
-      );
-      if (jsRes.ok) {
-        const jsText = await jsRes.text();
-        try { new Function(jsText)(); } catch (err) {}
-      }
-    } catch (e) {}
+    }
+    throw lastErr || new Error('Failed to reach Gemini API');
   }
 
-  function setupSSE() {
-    const startStaticCloudPoll = () => {
-      setInterval(async () => {
-        try {
-          const remote = await fetchCloudStateDirect();
-          if (remote) {
-            const remoteRev = remote.cloudRevision || 0;
-            const currentRev = appState ? (appState.syncedCloudRevision || appState.cloudRevision || 0) : 0;
-            if (remoteRev > currentRev) {
-              remote.syncedCloudRevision = remoteRev;
-              try { localStorage.setItem('hellyeah_state', JSON.stringify(remote)); } catch (err) {}
-              await applyLiveDeltaAssetsFromAPI();
-              renderApp(remote);
-            }
-          }
-        } catch (err) {}
-      }, 2500);
-    };
-
-    try {
-      const evtSource = new EventSource('./api/stream');
-      evtSource.addEventListener('state', (event) => {
-        try {
-          const nextState = JSON.parse(event.data);
-          renderApp(nextState);
-          fetchWorkspaceFiles();
-        } catch (e) {}
-      });
-      evtSource.addEventListener('reload', () => {
-        window.location.reload();
-      });
-      evtSource.onerror = () => {
-        evtSource.close();
-        startStaticCloudPoll();
-      };
-    } catch (e) {
-      startStaticCloudPoll();
-    }
-  }
-
-  function renderApp(state) {
-    if (!state) return;
-    appState = state;
-
-    const shell = document.getElementById('app-shell');
-    const hasModules = Array.isArray(state.modules) && state.modules.length > 0;
-    shell.classList.toggle('mode-genesis', !hasModules);
-    shell.classList.toggle('mode-evolved', hasModules);
-
-    // Theme
-    const theme = state.activeTheme || 'atelier-dark';
-    document.documentElement.setAttribute('data-theme', theme);
-    const themeBtnLabel = document.getElementById('theme-btn-label');
-    if (themeBtnLabel) {
-      themeBtnLabel.textContent = theme === 'atelier-light' ? 'Obsidian Mode' : 'Paper Mode';
-    }
-
-    // Header badges
-    document.getElementById('stage-subtitle').textContent = state.stageName || 'Genesis Seed';
-    document.getElementById('version-badge').textContent = `v${state.version || '0.1.0'}`;
-    const count = state.evolutionCount || 0;
-    document.getElementById('mutation-counter').textContent = `${count} ${count === 1 ? 'mutation' : 'mutations'}`;
-    document.getElementById('active-stage-heading').textContent = state.stageName || 'Genesis Canvas';
-
-    // Agent connection status
-    const statusDot = document.getElementById('status-dot');
-    const statusLabel = document.getElementById('status-label');
-    const sendBtn = document.getElementById('send-prompt-btn');
-    const sendBtnText = document.getElementById('send-btn-text');
-    const hasToken = Boolean(localStorage.getItem('hellyeah_gh_token'));
-
-    if (state.agentStatus === 'evolving') {
-      statusDot.className = 'status-dot evolving';
-      statusLabel.textContent = state.agentStatusText || 'Antigravity is mutating app...';
-      sendBtn.disabled = true;
-      sendBtnText.textContent = 'Mutating...';
-    } else {
-      statusDot.className = 'status-dot connected';
-      statusLabel.textContent = hasToken ? 'Antigravity Bridge (Auto)' : 'Antigravity Bridge';
-      sendBtn.disabled = false;
-      sendBtnText.textContent = 'Evolve App';
-    }
-
-    renderMessages(state.messages || []);
-    renderSuggestions(state.suggestions || []);
-    renderStageModules(state.modules || []);
-    renderChangelog(state.changelog || []);
-  }
-
-  function renderMessages(messages) {
-    const container = document.getElementById('chat-messages');
-    container.innerHTML = messages.map((m) => `
-      <article class="chat-bubble role-${escapeHTML(m.role)}">
-        <div class="bubble-meta">
-          <span class="bubble-author">${escapeHTML(m.author || (m.role === 'user' ? 'You' : 'Antigravity'))}</span>
-          <span>${escapeHTML(m.timestamp || '')}</span>
-        </div>
-        <div class="bubble-body">${formatMarkdownLite(m.content)}</div>
-        ${m.mutationBadge ? `<span class="mutation-pill">${escapeHTML(m.mutationBadge)}</span>` : ''}
-        ${m.bridgeDispatchUrl ? `
-          <div style="margin-top:0.55rem;display:flex;gap:0.45rem;flex-wrap:wrap;align-items:center;">
-            <a href="${escapeHTML(m.bridgeDispatchUrl)}" target="_blank" rel="noopener noreferrer" class="primary-pill-btn" style="text-decoration:none;font-size:0.72rem;padding:0.28rem 0.65rem;">
-              Transmit to Antigravity VM &nearr;
-            </a>
-            <button type="button" class="ghost-btn open-bridge-inline-btn" style="font-size:0.7rem;padding:0.24rem 0.55rem;">
-              Enable Silent Auto-Send
-            </button>
-          </div>
-        ` : ''}
-      </article>
-    `).join('');
-    container.querySelectorAll('.open-bridge-inline-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const modal = document.getElementById('bridge-modal');
-        if (modal) modal.classList.remove('hidden');
-      });
-    });
-    container.scrollTop = container.scrollHeight;
-  }
-
-  function renderSuggestions(suggestions) {
-    const list = document.getElementById('suggestions-list');
-    list.innerHTML = suggestions.map((s) => `
-      <button type="button" class="suggestion-card" data-prompt="${escapeHTML(s.prompt)}">
-        <span class="suggestion-category">${escapeHTML(s.category || 'Evolution')}</span>
-        <span class="suggestion-title">${escapeHTML(s.title)}</span>
-        <span class="suggestion-desc">${escapeHTML(s.description)}</span>
-      </button>
-    `).join('');
-
-    list.querySelectorAll('.suggestion-card').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const prompt = btn.getAttribute('data-prompt');
-        if (prompt) submitPrompt(prompt);
-      });
-    });
-  }
-
-  function renderStageModules(modules) {
-    const container = document.getElementById('modules-container');
-    const customBanner = typeof window.HELLEVO_CUSTOM_STAGE === 'function' ? window.HELLEVO_CUSTOM_STAGE(appState) : '';
-
-    if (!modules || modules.length === 0) {
-      container.innerHTML = customBanner + `
-        <div class="genesis-seed-card">
-          <span class="section-eyebrow">STAGE 00 // GENESIS SEED</span>
-          <h3>This canvas evolves from your conversation.</h3>
-          <p>
-            <strong>hellyeah</strong> starts intentionally minimal—just the live Antigravity communication console on the right and this open stage.
-            Describe any tool, instrument, workflow, or interface change in the chat, or pick one of the suggested evolutions to mutate the app live.
-          </p>
-          <div class="genesis-architecture-list">
-            <div class="arch-item">
-              <strong>Live File Bridge</strong>
-              <span>Connected to <code>/home/antigravity/hellyeah</code> with instant SSE sync.</span>
-            </div>
-            <div class="arch-item">
-              <strong>Self-Suggesting</strong>
-              <span>Proposes next architectural and functional evolutions after every step.</span>
-            </div>
-            <div class="arch-item">
-              <strong>Hot-Reloading Stage</strong>
-              <span>Edits to HTML, CSS, JS, or state materialize immediately without refresh.</span>
-            </div>
-          </div>
-        </div>
-      `;
-      return;
-    }
-
-    container.innerHTML = modules.map((mod) => {
-      if (mod.type === 'command-deck') {
-        const tasks = (mod.config && mod.config.tasks) || [];
-        const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
-        const secs = String(timerSeconds % 60).padStart(2, '0');
-        return `
-          <div class="stage-module" data-module-id="${escapeHTML(mod.id)}">
-            <div class="module-header">
-              <div class="module-title-group">
-                <h3>${escapeHTML(mod.title)}</h3>
-                <span>MODULE // FOCUS &amp; INTENT QUEUE &bull; v${escapeHTML(mod.version || '0.2.0')}</span>
-              </div>
-            </div>
-            <div class="command-deck-grid">
-              <div class="pomodoro-box">
-                <span class="section-eyebrow">FOCUS SESSION</span>
-                <div id="pomodoro-display" class="timer-readout">${mins}:${secs}</div>
-                <div class="timer-btn-row">
-                  <button type="button" id="pomo-toggle-btn" class="primary-pill-btn">${timerRunning ? 'Pause' : 'Start'}</button>
-                  <button type="button" id="pomo-25-btn" class="ghost-btn">25m</button>
-                  <button type="button" id="pomo-5-btn" class="ghost-btn">5m</button>
-                </div>
-              </div>
-              <div class="task-queue-box">
-                <div class="task-add-row">
-                  <input type="text" id="new-task-input" class="stage-text-input" placeholder="Add a focus objective and press Enter..." />
-                  <button type="button" id="add-task-btn" class="primary-pill-btn">Add</button>
-                </div>
-                <div class="task-items-list">
-                  ${tasks.map((t, idx) => `
-                    <div class="task-row ${t.done ? 'completed' : ''}" data-task-idx="${idx}">
-                      <span class="task-text">${t.done ? '✓ ' : '○ '} ${escapeHTML(t.text)}</span>
-                      <span class="mono-tag subtle">${escapeHTML(t.tag || 'Task')}</span>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      if (mod.type === 'synth-pad') {
-        return `
-          <div class="stage-module" data-module-id="${escapeHTML(mod.id)}">
-            <div class="module-header">
-              <div class="module-title-group">
-                <h3>${escapeHTML(mod.title)}</h3>
-                <span>MODULE // WEBAUDIO HARMONIC PAD &bull; v${escapeHTML(mod.version || '0.2.0')}</span>
-              </div>
-            </div>
-            <div class="synth-layout">
-              <div id="xy-synth-pad" class="xy-pad-surface">
-                <div id="xy-cursor" class="xy-cursor"></div>
-                <span id="xy-readout" class="xy-pad-Readout">Click &amp; drag here to sculpt frequency &amp; filter resonance</span>
-              </div>
-              <div class="synth-controls-col">
-                <span class="section-eyebrow">HARMONIC CHORD TRIGGERS</span>
-                <div class="chord-grid">
-                  <button type="button" class="ghost-btn chord-btn" data-freqs="261.63,329.63,392.00,493.88">Cmaj7</button>
-                  <button type="button" class="ghost-btn chord-btn" data-freqs="220.00,261.63,329.63,392.00">Am7</button>
-                  <button type="button" class="ghost-btn chord-btn" data-freqs="174.61,220.00,261.63,349.23">Fmaj7</button>
-                  <button type="button" class="ghost-btn chord-btn" data-freqs="196.00,246.94,293.66,392.00">G6</button>
-                </div>
-                <p style="font-size:0.76rem;color:var(--text-secondary);margin-top:0.35rem;">
-                  Uses native browser WebAudio oscillators with low-pass filter modulation.
-                </p>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      if (mod.type === 'idea-board') {
-        const cards = (mod.config && mod.config.cards) || [];
-        return `
-          <div class="stage-module" data-module-id="${escapeHTML(mod.id)}">
-            <div class="module-header">
-              <div class="module-title-group">
-                <h3>${escapeHTML(mod.title)}</h3>
-                <span>MODULE // SPATIAL KNOWLEDGE MATRIX &bull; v${escapeHTML(mod.version || '0.2.0')}</span>
-              </div>
-            </div>
-            <div class="task-add-row">
-              <input type="text" id="idea-title-input" class="stage-text-input" placeholder="Idea title..." style="max-width:210px;" />
-              <input type="text" id="idea-body-input" class="stage-text-input" placeholder="Capture thought or architectural note..." />
-              <button type="button" id="add-idea-btn" class="primary-pill-btn">Add Card</button>
-            </div>
-            <div class="idea-cards-grid">
-              ${cards.map((c) => `
-                <div class="idea-card">
-                  <span class="mono-tag subtle" style="align-self:flex-start;">${escapeHTML(c.tag || 'Note')}</span>
-                  <h4>${escapeHTML(c.title)}</h4>
-                  <p>${escapeHTML(c.body)}</p>
-                </div>
-              `).join('')}
-            </div>
-          </div>
-        `;
-      }
-
-      if (mod.type === 'system-inspector') {
-        return `
-          <div class="stage-module" data-module-id="${escapeHTML(mod.id)}">
-            <div class="module-header">
-              <div class="module-title-group">
-                <h3>${escapeHTML(mod.title)}</h3>
-                <span>MODULE // LIVE SELF-INSPECTOR &bull; /home/antigravity/hellyeah</span>
-              </div>
-              <button type="button" id="stage-open-drawer-btn" class="primary-pill-btn">Open Full Code Drawer</button>
-            </div>
-            <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.85rem;">
-              This module inspects the live files powering <strong>hellyeah</strong> inside <code>/home/antigravity/hellyeah</code>.
-            </p>
-            <div class="genesis-architecture-list">
-              <div class="arch-item">
-                <strong>State Store</strong>
-                <span><code>data/state.json</code> (${(appState.messages || []).length} messages, ${(appState.changelog || []).length} log entries)</span>
-              </div>
-              <div class="arch-item">
-                <strong>Bridge Watcher</strong>
-                <span><code>bridge-wait.js</code> &amp; <code>data/inbox.json</code></span>
-              </div>
-              <div class="arch-item">
-                <strong>Active Theme</strong>
-                <span><code>${escapeHTML(appState.activeTheme)}</code></span>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
-      // Default / Custom Evolved Applet
-      const items = (mod.config && mod.config.items) || [];
-      return `
-        <div class="stage-module" data-module-id="${escapeHTML(mod.id)}">
-          <div class="module-header">
-            <div class="module-title-group">
-              <h3>${escapeHTML(mod.title)}</h3>
-              <span>CUSTOM EVOLUTION MODULE &bull; v${escapeHTML(mod.version || '0.2.0')}</span>
-            </div>
-          </div>
-          <p style="font-size:0.86rem;color:var(--text-secondary);margin-bottom:0.9rem;">
-            Synthesized from prompt: <em>"${escapeHTML(mod.prompt || mod.title)}"</em>
-          </p>
-          <div class="task-items-list">
-            ${items.map((item) => `
-              <div class="task-row">
-                <span>${escapeHTML(item.label)}</span>
-                <span class="mono-tag">${escapeHTML(item.status)}</span>
-              </div>
-            `).join('')}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    bindStageEvents();
-  }
-
-  function bindStageEvents() {
-    // Pomodoro controls
-    const toggleBtn = document.getElementById('pomo-toggle-btn');
-    if (toggleBtn) {
-      toggleBtn.addEventListener('click', () => {
-        timerRunning = !timerRunning;
-        if (timerRunning) {
-          clearInterval(timerInterval);
-          timerInterval = setInterval(() => {
-            if (timerSeconds > 0) {
-              timerSeconds -= 1;
-              const disp = document.getElementById('pomodoro-display');
-              if (disp) {
-                const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
-                const s = String(timerSeconds % 60).padStart(2, '0');
-                disp.textContent = `${m}:${s}`;
-              }
-            } else {
-              timerRunning = false;
-              clearInterval(timerInterval);
-            }
-          }, 1000);
-        } else {
-          clearInterval(timerInterval);
-        }
-        toggleBtn.textContent = timerRunning ? 'Pause' : 'Start';
-      });
-    }
-
-    const btn25 = document.getElementById('pomo-25-btn');
-    if (btn25) {
-      btn25.addEventListener('click', () => {
-        timerRunning = false;
-        clearInterval(timerInterval);
-        timerSeconds = 25 * 60;
-        renderStageModules(appState.modules || []);
-      });
-    }
-
-    const btn5 = document.getElementById('pomo-5-btn');
-    if (btn5) {
-      btn5.addEventListener('click', () => {
-        timerRunning = false;
-        clearInterval(timerInterval);
-        timerSeconds = 5 * 60;
-        renderStageModules(appState.modules || []);
-      });
-    }
-
-    // Add task in Command Deck
-    const addTaskBtn = document.getElementById('add-task-btn');
-    const newTaskInput = document.getElementById('new-task-input');
-    const handleAddTask = async () => {
-      if (!newTaskInput || !newTaskInput.value.trim()) return;
-      const text = newTaskInput.value.trim();
-      const modules = JSON.parse(JSON.stringify(appState.modules || []));
-      const deck = modules.find(m => m.type === 'command-deck');
-      if (deck) {
-        deck.config = deck.config || { tasks: [] };
-        deck.config.tasks.unshift({ id: 't-' + Date.now(), text, done: false, tag: 'Focus' });
-        await updateServerState({ modules });
-      }
-    };
-    if (addTaskBtn) addTaskBtn.addEventListener('click', handleAddTask);
-    if (newTaskInput) {
-      newTaskInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          handleAddTask();
-        }
-      });
-    }
-
-    document.querySelectorAll('.task-row[data-task-idx]').forEach((row) => {
-      row.addEventListener('click', async () => {
-        const idx = Number(row.getAttribute('data-task-idx'));
-        const modules = JSON.parse(JSON.stringify(appState.modules || []));
-        const deck = modules.find(m => m.type === 'command-deck');
-        if (deck && deck.config && deck.config.tasks[idx]) {
-          deck.config.tasks[idx].done = !deck.config.tasks[idx].done;
-          await updateServerState({ modules });
-        }
-      });
-    });
-
-    // WebAudio XY Synth Pad
-    const xyPad = document.getElementById('xy-synth-pad');
-    if (xyPad) {
-      const triggerXY = (e) => {
-        const rect = xyPad.getBoundingClientRect();
-        const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-        const y = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height));
-        const cursor = document.getElementById('xy-cursor');
-        const readout = document.getElementById('xy-readout');
-        if (cursor) {
-          cursor.style.left = `${x * 100}%`;
-          cursor.style.top = `${(1 - y) * 100}%`;
-        }
-        const freq = Math.round(110 + x * 550);
-        const cutoff = Math.round(250 + y * 3200);
-        if (readout) {
-          readout.textContent = `Freq: ${freq} Hz • Filter Cutoff: ${cutoff} Hz`;
-        }
-        playSynthNote(freq, cutoff, 0.35);
-      };
-      let dragging = false;
-      xyPad.addEventListener('mousedown', (e) => { dragging = true; triggerXY(e); });
-      window.addEventListener('mousemove', (e) => { if (dragging) triggerXY(e); });
-      window.addEventListener('mouseup', () => { dragging = false; });
-    }
-
-    document.querySelectorAll('.chord-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const freqs = (btn.getAttribute('data-freqs') || '').split(',').map(Number);
-        freqs.forEach((f) => playSynthNote(f, 1800, 0.7));
-      });
-    });
-
-    // Idea Board Add Card
-    const addIdeaBtn = document.getElementById('add-idea-btn');
-    if (addIdeaBtn) {
-      addIdeaBtn.addEventListener('click', async () => {
-        const titleEl = document.getElementById('idea-title-input');
-        const bodyEl = document.getElementById('idea-body-input');
-        const title = titleEl ? titleEl.value.trim() : '';
-        const body = bodyEl ? bodyEl.value.trim() : '';
-        if (!title && !body) return;
-        const modules = JSON.parse(JSON.stringify(appState.modules || []));
-        const board = modules.find(m => m.type === 'idea-board');
-        if (board) {
-          board.config = board.config || { cards: [] };
-          board.config.cards.unshift({
-            id: 'c-' + Date.now(),
-            title: title || 'Untitled Note',
-            body: body || 'Captured in hellyeah studio.',
-            tag: 'Idea'
-          });
-          await updateServerState({ modules });
-        }
-      });
-    }
-
-    const openDrawerBtn = document.getElementById('stage-open-drawer-btn');
-    if (openDrawerBtn) {
-      openDrawerBtn.addEventListener('click', () => {
-        document.getElementById('inspector-drawer').classList.remove('hidden');
-        fetchWorkspaceFiles();
-      });
-    }
-  }
-
-  function playSynthNote(freq, cutoff, duration) {
-    try {
-      if (!audioCtx) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        audioCtx = new AudioContext();
-      }
-      const now = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const filter = audioCtx.createBiquadFilter();
-      const gain = audioCtx.createGain();
-
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(freq, now);
-
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(cutoff, now);
-
-      gain.gain.setValueAtTime(0.001, now);
-      gain.gain.exponentialRampToValueAtTime(0.12, now + 0.03);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-
-      osc.connect(filter);
-      filter.connect(gain);
-      gain.connect(audioCtx.destination);
-
-      osc.start(now);
-      osc.stop(now + duration + 0.02);
-    } catch (e) {}
-  }
-
-  function renderChangelog(changelog) {
-    const list = document.getElementById('changelog-list');
-    if (!list) return;
-    list.innerHTML = changelog.map((c) => `
-      <div class="changelog-item">
-        <div style="display:flex;justify-content:space-between;margin-bottom:0.2rem;">
-          <strong class="mono-tag">v${escapeHTML(c.version)}</strong>
-          <span style="font-size:0.72rem;color:var(--text-muted);">${escapeHTML(c.timestamp)}</span>
-        </div>
-        <div>${escapeHTML(c.summary)}</div>
-      </div>
-    `).join('');
-  }
-
-  function renderInspectorFiles() {
-    const tabs = document.getElementById('file-tabs');
-    const preview = document.getElementById('file-code-preview');
-    if (!tabs || !preview) return;
-
-    tabs.innerHTML = workspaceFiles.map((f) => `
-      <button type="button" class="file-tab-btn ${f.path === selectedFilePath ? 'active' : ''}" data-path="${escapeHTML(f.path)}">
-        ${escapeHTML(f.path)}
-      </button>
-    `).join('');
-
-    tabs.querySelectorAll('.file-tab-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        selectedFilePath = btn.getAttribute('data-path');
-        renderInspectorFiles();
-      });
-    });
-
-    const activeFile = workspaceFiles.find((f) => f.path === selectedFilePath) || workspaceFiles[0];
-    if (activeFile) {
-      preview.textContent = activeFile.preview || activeFile.error || '';
-    }
-  }
-
-  async function dispatchToGitHubBridge(promptText) {
-    const token = (localStorage.getItem('hellyeah_gh_token') || '').trim();
-    const issueTitle = '[hellyeah] ' + promptText.slice(0, 72);
-    const fallbackUrl =
-      'https://github.com/magistak/magistak.github.io/issues/new?title=' +
-      encodeURIComponent(issueTitle) +
-      '&body=' +
-      encodeURIComponent(promptText);
-
+  async function dispatchAntigravityToolCall(instruction, summary, msgObj) {
+    const token = (localStorage.getItem(STORAGE_GH_TOKEN) || '').trim();
     if (!token) {
-      return { sentSilently: false, fallbackUrl };
+      msgObj.toolCall.status = 'Missing GitHub Token (Tap Keys)';
+      renderThread();
+      return { ok: false, error: 'No GitHub token configured in Keys settings.' };
     }
 
     try {
       const res = await fetch('https://api.github.com/repos/magistak/magistak.github.io/issues', {
         method: 'POST',
         headers: {
-          'Accept': 'application/vnd.github+json',
-          'Authorization': 'Bearer ' + token,
+          Accept: 'application/vnd.github+json',
+          Authorization: 'Bearer ' + token,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          title: issueTitle,
-          body: promptText
+          title: '[hellyeah] ' + (summary || instruction).slice(0, 70),
+          body: '[Gemini Tool Call: call_antigravity]\nSummary: ' + summary + '\n\nInstruction:\n' + instruction
         })
       });
       if (!res.ok) throw new Error('GitHub API ' + res.status);
-      const data = await res.json();
-      return { sentSilently: true, issueNumber: data.number, issueUrl: data.html_url };
-    } catch (e) {
-      return { sentSilently: false, fallbackUrl };
+      const issue = await res.json();
+      msgObj.toolCall.status = 'Dispatched #' + issue.number + ' • Watching VM...';
+      saveChat();
+      renderThread();
+      watchAntigravityToolIssue(issue.number, msgObj.id);
+      return { ok: true, issueNumber: issue.number };
+    } catch (err) {
+      msgObj.toolCall.status = 'Dispatch Error: ' + err.message;
+      saveChat();
+      renderThread();
+      return { ok: false, error: err.message };
     }
   }
 
-  let activeIssuePollTimer = null;
-
-  function watchLiveIssueComments(issueNumber, baseCloudRev) {
-    const token = (localStorage.getItem('hellyeah_gh_token') || '').trim();
+  function watchAntigravityToolIssue(issueNumber, msgId) {
+    const token = (localStorage.getItem(STORAGE_GH_TOKEN) || '').trim();
     if (!token || !issueNumber) return;
-    if (activeIssuePollTimer) clearInterval(activeIssuePollTimer);
 
-    const startedAt = Date.now();
-    activeIssuePollTimer = setInterval(async () => {
-      if (Date.now() - startedAt > 180000) {
-        clearInterval(activeIssuePollTimer);
-        return;
-      }
-      // If cloudRevision already advanced, stop issue polling because full state arrived!
-      if (appState && (appState.syncedCloudRevision || 0) > baseCloudRev) {
-        clearInterval(activeIssuePollTimer);
+    const startTime = Date.now();
+    const timer = setInterval(async () => {
+      if (Date.now() - startTime > 240000) {
+        clearInterval(timer);
         return;
       }
       try {
@@ -960,354 +336,257 @@
           `https://api.github.com/repos/magistak/magistak.github.io/issues/${issueNumber}/comments?t=${Date.now()}`,
           {
             headers: {
-              'Accept': 'application/vnd.github+json',
-              'Authorization': 'Bearer ' + token
+              Accept: 'application/vnd.github+json',
+              Authorization: 'Bearer ' + token
             },
             cache: 'no-store'
           }
         );
         if (res.ok) {
           const comments = await res.json();
-          if (Array.isArray(comments) && comments.length > 0 && appState) {
+          if (Array.isArray(comments) && comments.length > 0) {
             const latest = comments[comments.length - 1];
-            const liveMsgId = 'msg-live-issue-' + issueNumber;
-            const existingIdx = (appState.messages || []).findIndex((m) => m.id === liveMsgId);
-            const liveMsg = {
-              id: liveMsgId,
-              role: 'assistant',
-              author: 'Antigravity (Live)',
-              timestamp: new Date(latest.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-              content: latest.body,
-              mutationBadge: `Live Response on #${issueNumber} • Working...`
-            };
-            if (existingIdx >= 0) {
-              appState.messages[existingIdx] = liveMsg;
-            } else {
-              appState.messages.push(liveMsg);
+            const target = chatMessages.find((m) => m.id === msgId);
+            if (target && target.toolCall) {
+              target.toolCall.status = 'Antigravity Active on #' + issueNumber;
+              target.toolCall.liveStream = latest.body;
+              saveChat();
+              renderThread();
             }
-            renderMessages(appState.messages);
           }
         }
       } catch (e) {}
-    }, 1500);
+    }, 2000);
   }
 
-  window.HELLEVO_CORE_V061 = true;
+  async function handleUserMessage(text) {
+    const trimmed = String(text || '').trim();
+    if (!trimmed || isSending) return;
 
-  async function askGeminiRouter(promptText, state) {
-    if (typeof window.askGeminiMultiModelRouter === 'function') {
-      return await window.askGeminiMultiModelRouter(promptText, state);
+    const apiKey = (localStorage.getItem(STORAGE_GEMINI_KEY) || '').trim();
+    if (!apiKey) {
+      const missingBanner = document.getElementById('missing-key-banner');
+      if (missingBanner) missingBanner.classList.remove('hidden');
+      const keyInput = document.getElementById('welcome-gemini-key');
+      if (keyInput) keyInput.focus();
+      return;
     }
-    const geminiKey = (localStorage.getItem('hellyeah_gemini_key') || '').trim();
-    if (!geminiKey) return null;
-    const models = ['gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'];
-    const sysPrompt = [
-      'You are the front-line Gemini AI inside "hellyeah", a self-evolving web app on the user\'s iPhone.',
-      'You work alongside Antigravity (the deep coding agent running in a Linux VM connected via GitHub).',
-      'Decide whether YOU ("self") should handle the user\'s message directly right now, or escalate to Antigravity ("antigravity"):',
-      '- Choose "self" (DEFAULT) if the user is chatting, testing you, asking questions, brainstorming, or asking for an instant UI/widget/theme tweak via stageHtml, customCss, or theme.',
-      '- Choose "antigravity" ONLY if the user explicitly asks for Antigravity or deep multi-file git commits in the Linux VM.',
-      'Return strict JSON: {"route": "self" | "antigravity", "reply": "Your concise response", "badge": "Status badge", "theme": "atelier-dark" | "atelier-light" | null, "customCss": null, "stageHtml": null}'
-    ].join('\n');
 
-    let lastErr = null;
-    for (const modelName of models) {
-      try {
-        const res = await fetch(
-          'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(modelName) + ':generateContent?key=' + encodeURIComponent(geminiKey),
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: sysPrompt }] },
-              contents: [{ role: 'user', parts: [{ text: promptText }] }],
-              generationConfig: { responseMimeType: 'application/json', temperature: 0.35 }
-            })
-          }
-        );
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-        rawText = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim();
-        const parsed = JSON.parse(rawText);
-        parsed._modelUsed = modelName;
-        return parsed;
-      } catch (err) {
-        lastErr = err;
-      }
+    isSending = true;
+    const sendBtn = document.getElementById('gemini-send-btn');
+    if (sendBtn) sendBtn.disabled = true;
+
+    const inputEl = document.getElementById('gemini-input');
+    if (inputEl) {
+      inputEl.value = '';
+      inputEl.style.height = 'auto';
     }
-    return { error: lastErr ? lastErr.message : 'Gemini request failed' };
-  }
 
-  async function submitPrompt(promptText) {
-    const input = document.getElementById('chat-input');
-    if (input) input.value = '';
+    chatMessages.push({
+      id: 'u-' + Date.now(),
+      role: 'user',
+      text: trimmed
+    });
+
+    const placeholderId = 'm-' + (Date.now() + 1);
+    const placeholderMsg = {
+      id: placeholderId,
+      role: 'model',
+      modelLabel: 'Gemini',
+      text: '...'
+    };
+    chatMessages.push(placeholderMsg);
+    renderThread();
+
     try {
-      const res = await fetch('./api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: promptText })
-      });
-      if (!res.ok) throw new Error('Static mode');
-      const data = await res.json();
-      if (data.state) renderApp(data.state);
-    } catch (e) {
-      const token = (localStorage.getItem('hellyeah_gh_token') || '').trim();
-      const geminiKey = (localStorage.getItem('hellyeah_gemini_key') || '').trim();
-      const nextState = JSON.parse(JSON.stringify(appState || FALLBACK_INITIAL_STATE));
-      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      nextState.messages = Array.isArray(nextState.messages) ? nextState.messages : [];
-      nextState.messages.push({
-        id: 'msg-u-' + Date.now(),
-        role: 'user',
-        author: 'You',
-        timestamp: nowStr,
-        content: promptText
-      });
-      nextState.agentStatus = 'evolving';
-      nextState.agentStatusText = geminiKey ? 'Gemini Router thinking...' : 'Connecting to Antigravity...';
-      renderApp(nextState);
+      const contents = buildGeminiContents().slice(0, -1); // exclude placeholder
+      const { data, modelName } = await generateGeminiResponse(contents, true);
+      placeholderMsg.modelLabel = 'Gemini (' + modelName + ')';
 
-      // Step 1: If Gemini API key is configured, ask Gemini Router first (<1s)!
-      let bridgePromptText = promptText;
-      if (geminiKey) {
-        const decision = await askGeminiRouter(promptText, nextState);
-        if (decision && decision.error) {
-          nextState.agentStatus = 'connected';
-          nextState.messages.push({
-            id: 'msg-gemini-err-' + Date.now(),
-            role: 'assistant',
-            author: 'Gemini Router',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            content: `⚠️ **Gemini API Error**: \`${decision.error}\`\nCheck your Gemini API key or model selection in the stage card below.`,
-            mutationBadge: 'Gemini Error • Not Sent to VM'
-          });
-          try { localStorage.setItem('hellyeah_state', JSON.stringify(nextState)); } catch (err) {}
-          renderApp(nextState);
-          return;
-        }
-        if (decision && !decision.error) {
-          const usedModel = decision._modelUsed || 'gemini-3-flash-preview';
-          if (decision.theme === 'atelier-dark' || decision.theme === 'atelier-light') {
-            nextState.activeTheme = decision.theme;
-          }
-          if (decision.customCss) {
-            let styleTag = document.getElementById('gemini-live-css');
-            if (!styleTag) {
-              styleTag = document.createElement('style');
-              styleTag.id = 'gemini-live-css';
-              document.head.appendChild(styleTag);
+      const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+      let textParts = [];
+      let funcCall = null;
+
+      for (const part of parts) {
+        if (part.text) textParts.push(part.text);
+        if (part.functionCall) funcCall = part.functionCall;
+      }
+
+      placeholderMsg.text = textParts.join('\n').trim();
+
+      if (funcCall) {
+        const fnName = funcCall.name;
+        const args = funcCall.args || {};
+
+        if (fnName === 'render_live_widget') {
+          placeholderMsg.toolCall = {
+            name: 'render_live_widget',
+            summary: args.title || 'Live Widget',
+            instruction: 'Rendered instant widget inside chat viewport.',
+            status: '✓ Rendered Live'
+          };
+          if (args.css) {
+            let dynStyle = document.getElementById('gemini-widget-css');
+            if (!dynStyle) {
+              dynStyle = document.createElement('style');
+              dynStyle.id = 'gemini-widget-css';
+              document.head.appendChild(dynStyle);
             }
-            styleTag.textContent += '\n' + decision.customCss;
+            dynStyle.textContent += '\n' + args.css;
           }
-          if (decision.stageHtml) {
-            window.GEMINI_STAGE_HTML = decision.stageHtml;
+          placeholderMsg.widgetHtml = args.html || '';
+          if (!placeholderMsg.text) {
+            placeholderMsg.text = `Rendered **${args.title || 'Live Widget'}** above.`;
           }
-
-          if (decision.route !== 'antigravity') {
-            nextState.agentStatus = 'connected';
-            nextState.messages.push({
-              id: 'msg-gemini-' + Date.now(),
-              role: 'assistant',
-              author: `Gemini (${usedModel})`,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-              content: decision.reply || 'Done!',
-              mutationBadge: decision.badge || `⚡ ${usedModel} • Direct (<1s)`
-            });
-            try { localStorage.setItem('hellyeah_state', JSON.stringify(nextState)); } catch (err) {}
-            renderApp(nextState);
-            return;
-          } else {
-            // Gemini decided to route to Antigravity! Show Gemini's handoff note immediately:
-            bridgePromptText = `[Routed by ${usedModel}] ${promptText}`;
-            nextState.messages.push({
-              id: 'msg-gemini-route-' + Date.now(),
-              role: 'assistant',
-              author: `Gemini (${usedModel}) → Antigravity`,
-              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-              content: decision.reply || 'Escalating this task to Antigravity in the Linux VM...',
-              mutationBadge: decision.badge || `Routed by ${usedModel} → Antigravity VM`
-            });
-            renderApp(nextState);
+        } else if (fnName === 'call_antigravity') {
+          const instruction = args.instruction || trimmed;
+          const summary = args.summary || instruction.slice(0, 40);
+          placeholderMsg.toolCall = {
+            name: 'call_antigravity',
+            summary,
+            instruction,
+            status: 'Calling Antigravity VM...'
+          };
+          if (!placeholderMsg.text) {
+            placeholderMsg.text = `I've invoked **Antigravity** via \`call_antigravity\` to handle that. Live progress from the VM will stream in the tool card above.`;
           }
+          renderThread();
+          await dispatchAntigravityToolCall(instruction, summary, placeholderMsg);
         }
       }
 
-      // Step 2: Escalate/Send to Antigravity via GitHub Bridge
-      if (token) {
-        const bridgeResult = await dispatchToGitHubBridge(bridgePromptText);
-        if (bridgeResult.sentSilently) {
-          const baseRev = nextState.syncedCloudRevision || nextState.cloudRevision || 0;
-          nextState.messages.push({
-            id: 'msg-live-issue-' + bridgeResult.issueNumber,
-            role: 'assistant',
-            author: 'Antigravity (Live)',
-            timestamp: nowStr,
-            content: `Connected to Antigravity VM (\`#${bridgeResult.issueNumber}\`). Working on your request...`,
-            mutationBadge: `Live Stream #${bridgeResult.issueNumber}`
-          });
-          renderApp(nextState);
-          watchLiveIssueComments(bridgeResult.issueNumber, baseRev);
-        }
-        return;
+      if (!placeholderMsg.text && !placeholderMsg.toolCall) {
+        placeholderMsg.text = '*(No text returned by model)*';
       }
-
-      // Offline / No-Token Fallback only
-      const fallbackState = clientSynthesizeEvolution(promptText, appState);
-      const bridgeResult = await dispatchToGitHubBridge(promptText);
-      const lastMsg = fallbackState.messages[fallbackState.messages.length - 1];
-      if (lastMsg && bridgeResult.fallbackUrl) {
-        lastMsg.bridgeDispatchUrl = bridgeResult.fallbackUrl;
-      }
-      try { localStorage.setItem('hellyeah_state', JSON.stringify(fallbackState)); } catch (err) {}
-      renderApp(fallbackState);
+    } catch (err) {
+      placeholderMsg.modelLabel = 'Gemini Error';
+      placeholderMsg.text = `⚠️ **Gemini API Error**: \`${err.message}\`\nTap **Keys** in the top right to verify your Gemini API key.`;
+    } finally {
+      isSending = false;
+      if (sendBtn) sendBtn.disabled = false;
+      saveChat();
+      renderThread();
     }
   }
 
-  async function updateServerState(patch) {
-    try {
-      const res = await fetch('./api/state/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(patch)
-      });
-      if (!res.ok) throw new Error('Static mode');
-      const data = await res.json();
-      if (data.state) renderApp(data.state);
-    } catch (e) {
-      const nextState = { ...(appState || FALLBACK_INITIAL_STATE), ...patch };
-      try { localStorage.setItem('hellyeah_state', JSON.stringify(nextState)); } catch (err) {}
-      renderApp(nextState);
-    }
-  }
-
-  function refreshBridgeTokenStatus() {
-    const statusEl = document.getElementById('gh-token-status');
-    const tokenInput = document.getElementById('gh-token-input');
-    const saved = localStorage.getItem('hellyeah_gh_token') || '';
-    if (statusEl) {
-      statusEl.textContent = saved
-        ? '✓ GitHub Bridge Active (Saved in iPhone localStorage)'
-        : 'No GitHub token saved yet';
-    }
-    if (tokenInput && saved) {
-      tokenInput.value = saved;
-    }
-
-    const geminiStatusEl = document.getElementById('gemini-key-status');
-    const geminiInput = document.getElementById('gemini-key-input');
-    const savedGemini = localStorage.getItem('hellyeah_gemini_key') || '';
-    if (geminiStatusEl) {
-      geminiStatusEl.textContent = savedGemini
-        ? '✓ Gemini 2.5 Flash Router Active (<1s first response)'
-        : 'No Gemini key saved yet';
-    }
-    if (geminiInput && savedGemini) {
-      geminiInput.value = savedGemini;
-    }
-  }
-
-  // Wire global UI events
   document.addEventListener('DOMContentLoaded', () => {
-    fetchInitialState();
-    fetchWorkspaceFiles();
-    setupSSE();
-    refreshBridgeTokenStatus();
+    // Restore theme
+    const savedTheme = localStorage.getItem(STORAGE_THEME_KEY) || 'gemini-dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
 
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
+    // Restore model picker
+    const modelPicker = document.getElementById('model-picker');
+    const savedModel = localStorage.getItem(STORAGE_MODEL_KEY) || 'auto';
+    if (modelPicker) {
+      modelPicker.value = savedModel;
+      modelPicker.addEventListener('change', () => {
+        localStorage.setItem(STORAGE_MODEL_KEY, modelPicker.value);
+      });
+    }
 
-    chatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const text = chatInput.value.trim();
-      if (text) submitPrompt(text);
-    });
+    loadSavedChat();
+    updateKeyIndicators();
+    renderThread();
 
-    chatInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
+    // Form submit
+    const form = document.getElementById('gemini-form');
+    const input = document.getElementById('gemini-input');
+
+    if (form && input) {
+      form.addEventListener('submit', (e) => {
         e.preventDefault();
-        const text = chatInput.value.trim();
-        if (text) submitPrompt(text);
-      }
-    });
-
-    document.getElementById('toggle-theme-btn').addEventListener('click', () => {
-      if (!appState) return;
-      const nextTheme = appState.activeTheme === 'atelier-light' ? 'atelier-dark' : 'atelier-light';
-      updateServerState({ activeTheme: nextTheme });
-    });
-
-    document.getElementById('toggle-inspector-btn').addEventListener('click', () => {
-      const drawer = document.getElementById('inspector-drawer');
-      drawer.classList.toggle('hidden');
-      if (!drawer.classList.contains('hidden')) fetchWorkspaceFiles();
-    });
-
-    document.getElementById('close-inspector-btn').addEventListener('click', () => {
-      document.getElementById('inspector-drawer').classList.add('hidden');
-    });
-
-    const openBridgeBtn = document.getElementById('open-bridge-btn');
-    if (openBridgeBtn) {
-      openBridgeBtn.addEventListener('click', () => {
-        refreshBridgeTokenStatus();
-        document.getElementById('bridge-modal').classList.remove('hidden');
+        handleUserMessage(input.value);
       });
-    }
 
-    const closeBridgeBtn = document.getElementById('close-bridge-btn');
-    if (closeBridgeBtn) {
-      closeBridgeBtn.addEventListener('click', () => {
-        document.getElementById('bridge-modal').classList.add('hidden');
-      });
-    }
-
-    const saveTokenBtn = document.getElementById('save-gh-token-btn');
-    if (saveTokenBtn) {
-      saveTokenBtn.addEventListener('click', () => {
-        const val = (document.getElementById('gh-token-input').value || '').trim();
-        if (val) {
-          localStorage.setItem('hellyeah_gh_token', val);
-        } else {
-          localStorage.removeItem('hellyeah_gh_token');
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleUserMessage(input.value);
         }
-        refreshBridgeTokenStatus();
-        if (appState) renderApp(appState);
+      });
+
+      input.addEventListener('input', () => {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 120) + 'px';
       });
     }
 
-    const saveGeminiBtn = document.getElementById('save-gemini-key-btn');
+    // Starter chips
+    document.querySelectorAll('.starter-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const prompt = chip.getAttribute('data-prompt');
+        if (prompt) handleUserMessage(prompt);
+      });
+    });
+
+    // Welcome screen quick key save
+    const welcomeSaveBtn = document.getElementById('welcome-save-key-btn');
+    if (welcomeSaveBtn) {
+      welcomeSaveBtn.addEventListener('click', () => {
+        const val = (document.getElementById('welcome-gemini-key').value || '').trim();
+        if (val) {
+          localStorage.setItem(STORAGE_GEMINI_KEY, val);
+          updateKeyIndicators();
+        }
+      });
+    }
+
+    // New Chat / Clear
+    const clearBtn = document.getElementById('clear-chat-btn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        chatMessages = [];
+        saveChat();
+        renderThread();
+      });
+    }
+
+    // Settings sheet
+    const sheet = document.getElementById('settings-sheet');
+    const openSettingsBtn = document.getElementById('open-settings-btn');
+    const closeSettingsBtn = document.getElementById('close-settings-btn');
+    const backdrop = document.getElementById('sheet-backdrop');
+
+    const closeSheet = () => {
+      if (sheet) sheet.classList.add('hidden');
+    };
+
+    if (openSettingsBtn && sheet) {
+      openSettingsBtn.addEventListener('click', () => {
+        updateKeyIndicators();
+        sheet.classList.remove('hidden');
+      });
+    }
+    if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSheet);
+    if (backdrop) backdrop.addEventListener('click', closeSheet);
+
+    const saveGeminiBtn = document.getElementById('save-gemini-btn');
     if (saveGeminiBtn) {
       saveGeminiBtn.addEventListener('click', () => {
-        const val = (document.getElementById('gemini-key-input').value || '').trim();
-        if (val) {
-          localStorage.setItem('hellyeah_gemini_key', val);
-        } else {
-          localStorage.removeItem('hellyeah_gemini_key');
-        }
-        refreshBridgeTokenStatus();
-        if (appState) renderApp(appState);
+        const val = (document.getElementById('settings-gemini-key').value || '').trim();
+        if (val) localStorage.setItem(STORAGE_GEMINI_KEY, val);
+        else localStorage.removeItem(STORAGE_GEMINI_KEY);
+        updateKeyIndicators();
       });
     }
 
-    document.getElementById('reset-stage-btn').addEventListener('click', () => {
-      submitPrompt('Reset the stage back to the Genesis slate.');
-    });
+    const saveGhBtn = document.getElementById('save-gh-btn');
+    if (saveGhBtn) {
+      saveGhBtn.addEventListener('click', () => {
+        const val = (document.getElementById('settings-gh-token').value || '').trim();
+        if (val) localStorage.setItem(STORAGE_GH_TOKEN, val);
+        else localStorage.removeItem(STORAGE_GH_TOKEN);
+        updateKeyIndicators();
+      });
+    }
 
-    document.getElementById('shuffle-suggestions-btn').addEventListener('click', () => {
-      const nextPool = EXTRA_SUGGESTION_POOLS[poolIndex % EXTRA_SUGGESTION_POOLS.length];
-      poolIndex += 1;
-      updateServerState({ suggestions: nextPool });
-    });
-
-    const toggleHistoryBtn = document.getElementById('toggle-chat-history-btn');
-    if (toggleHistoryBtn) {
-      toggleHistoryBtn.addEventListener('click', () => {
-        const msgBox = document.getElementById('chat-messages');
-        if (msgBox) {
-          const isCollapsed = msgBox.classList.toggle('collapsed');
-          toggleHistoryBtn.textContent = isCollapsed ? 'Show Chat History' : 'Hide Chat History';
-        }
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', () => {
+        const cur = document.documentElement.getAttribute('data-theme');
+        const next = cur === 'gemini-light' ? 'gemini-dark' : 'gemini-light';
+        document.documentElement.setAttribute('data-theme', next);
+        localStorage.setItem(STORAGE_THEME_KEY, next);
       });
     }
   });
