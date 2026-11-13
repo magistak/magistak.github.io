@@ -1,0 +1,21 @@
+/* Delta CSS overrides (v0.4.0) - Edit this small file for fast, low-token UI mutations */
+.token-saver-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.76rem;
+}
+
+.token-pill {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  background-color: var(--accent-surface);
+  color: var(--accent-primary);
+}

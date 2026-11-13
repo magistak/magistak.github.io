@@ -1,91 +1,89 @@
 {
   "appName": "hellyeah",
-  "subtitle": "Mobile-First Evolving Studio • Connected to Antigravity",
-  "version": "0.3.0",
-  "codeVersion": "0.3.0",
-  "cloudRevision": 3,
-  "stageName": "Mobile-First Studio",
-  "evolutionCount": 2,
+  "version": "0.4.0",
+  "codeVersion": "0.4.0",
+  "cloudRevision": 4,
+  "stageName": "Low-Token Delta Studio",
+  "evolutionCount": 3,
   "agentStatus": "connected",
-  "agentStatusText": "Bridge: Auto",
   "activeTheme": "atelier-dark",
   "messages": [
     {
-      "id": "msg-issue-1-user",
+      "id": "m2",
       "role": "user",
-      "author": "You (via iPhone #1)",
+      "author": "You (#2)",
       "timestamp": "Earlier",
-      "content": "Move chat window to the top"
-    },
-    {
-      "id": "msg-issue-1-ag",
-      "role": "assistant",
-      "author": "Antigravity",
-      "timestamp": "Earlier",
-      "content": "Moved the Evolution Chat Console (`#antigravity-console`) to the top of the workspace (`v0.2.0`).",
-      "mutationBadge": "v0.2.0 • Chat Docked at Top (#1)"
-    },
-    {
-      "id": "msg-issue-2-user",
-      "role": "user",
-      "author": "You (via iPhone #2)",
-      "timestamp": "Just now",
       "content": "make the interface mobile friendly"
     },
     {
-      "id": "msg-issue-2-ag",
+      "id": "m2-ag",
+      "role": "assistant",
+      "author": "Antigravity",
+      "timestamp": "Earlier",
+      "content": "Redesigned for iPhone with a single-row header, top composer, and swipeable suggestions (`v0.3.0`).",
+      "mutationBadge": "v0.3.0 • Mobile UI (#2)"
+    },
+    {
+      "id": "m3",
+      "role": "user",
+      "author": "You (#3)",
+      "timestamp": "Just now",
+      "content": "Make requests use less tokens"
+    },
+    {
+      "id": "m3-ag",
       "role": "assistant",
       "author": "Antigravity",
       "timestamp": "Just now",
-      "content": "Received **Issue #2** from your iPhone and redesigned **hellyeah** (`v0.3.0`) for native iPhone ergonomics:\n\n- **Single-Row Sticky iOS Header**: Compact frosted-glass top bar with thumb-friendly `Bridge`, `Log`, and `Theme` pills.\n- **Inline iOS Composer Bar**: Sleek 1-row prompt input (`16px` no-zoom) with an inline **Evolve** button right at the top.\n- **Swipeable Suggestions Carousel**: Replaced the tall stacked grid with a horizontal touch-swipeable pill carousel (`scroll-snap-type: x mandatory`).\n- **Collapsible Chat History**: Added a **Chat History** toggle so you can collapse messages whenever you want maximum stage space.",
-      "mutationBadge": "v0.3.0 • Mobile-First Redesign (#2)"
+      "content": "Switched to **Low-Token Delta Architecture (`v0.4.0`)**: extracted `custom.css` (22 lines) and `stage-custom.js` (12 lines) and trimmed `state.json` so future requests edit only tiny delta files (~85% fewer tokens per prompt).",
+      "mutationBadge": "v0.4.0 • Low-Token Delta Mode (#3)"
     }
   ],
   "suggestions": [
     {
-      "id": "sug-1",
-      "title": "Pomodoro & Focus Deck",
+      "id": "s1",
+      "title": "Pomodoro & Task Deck",
       "category": "Focus",
-      "description": "Tactile timer & task queue optimized for iPhone.",
-      "prompt": "Evolve the stage into a Personal Command Deck with a tactile Pomodoro focus timer and task queue."
+      "description": "Tactile timer & task queue.",
+      "prompt": "Evolve the stage into a Personal Command Deck with a Pomodoro timer and task queue."
     },
     {
-      "id": "sug-2",
+      "id": "s2",
       "title": "Touch XY Audio Synth",
       "category": "Audio",
-      "description": "Playable WebAudio synth pad with multi-touch chords.",
+      "description": "Playable WebAudio touch synth.",
       "prompt": "Add a playable WebAudio synthesizer and XY expression pad with preset chords."
     },
     {
-      "id": "sug-3",
-      "title": "Bottom Tab Navigation Bar",
-      "category": "iOS UX",
-      "description": "Add a native iOS bottom tab bar to switch between Stage, Chat, and Log.",
-      "prompt": "Add a sticky iOS bottom tab bar to switch cleanly between Chat, Stage, and Code Log."
+      "id": "s3",
+      "title": "Spatial Note Cards",
+      "category": "Notes",
+      "description": "Persistent thought cards.",
+      "prompt": "Build an interactive spatial note-taking board where I can create thought cards."
     },
     {
-      "id": "sug-4",
-      "title": "Quick Voice / Note Cards",
-      "category": "Notes",
-      "description": "Capture spatial thought cards that persist on your phone.",
-      "prompt": "Build an interactive spatial note-taking board where I can create and link thought cards."
+      "id": "s4",
+      "title": "Warm Paper Theme",
+      "category": "Theme",
+      "description": "Switch to light editorial paper.",
+      "prompt": "Switch the theme to a warm alabaster paper editorial aesthetic."
     }
   ],
   "changelog": [
     {
+      "version": "0.4.0",
+      "timestamp": "Issue #3",
+      "summary": "Low-Token Delta Mode: split custom.css & stage-custom.js and compacted state.json (~85% fewer tokens/request)."
+    },
+    {
       "version": "0.3.0",
       "timestamp": "Issue #2",
-      "summary": "Mobile-first redesign: single-row sticky frosted header, inline iOS composer bar, horizontal swipeable suggestions carousel, and 42px+ touch targets."
+      "summary": "Mobile-first iPhone redesign."
     },
     {
       "version": "0.2.0",
       "timestamp": "Issue #1",
-      "summary": "Moved Evolution Chat Console (#antigravity-console) and prompt input to the top of the app across all modes."
-    },
-    {
-      "version": "0.1.0",
-      "timestamp": "Genesis",
-      "summary": "Initialized hellyeah core with SSE hot-reload, Antigravity file-bridge, suggestion engine, and modular stage."
+      "summary": "Moved chat console to top."
     }
   ],
   "modules": []

@@ -452,9 +452,10 @@
 
   function renderStageModules(modules) {
     const container = document.getElementById('modules-container');
+    const customBanner = typeof window.HELLEVO_CUSTOM_STAGE === 'function' ? window.HELLEVO_CUSTOM_STAGE(appState) : '';
 
     if (!modules || modules.length === 0) {
-      container.innerHTML = `
+      container.innerHTML = customBanner + `
         <div class="genesis-seed-card">
           <span class="section-eyebrow">STAGE 00 // GENESIS SEED</span>
           <h3>This canvas evolves from your conversation.</h3>
