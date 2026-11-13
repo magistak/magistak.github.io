@@ -1,19 +1,19 @@
 {
   "appName": "hellyeah",
-  "version": "1.0.0",
-  "codeVersion": "1.0.0",
-  "cloudRevision": 8,
-  "stageName": "Gemini Chat × Antigravity Tool",
+  "version": "1.1.0",
+  "codeVersion": "1.1.0",
+  "cloudRevision": 9,
+  "stageName": "Gemini Chat × Express VPS & Google OAuth",
   "activeTheme": "gemini-dark",
-  "evolutionCount": 8,
+  "evolutionCount": 9,
   "agentStatus": "connected",
   "messages": [],
   "suggestions": [],
   "changelog": [
     {
-      "version": "1.0.0",
-      "timestamp": "15:00",
-      "summary": "Complete rehaul into native Gemini Chat interface with Antigravity exposed only as a Gemini function-calling tool (call_antigravity)."
+      "version": "1.1.0",
+      "timestamp": "15:24",
+      "summary": "Added Express server.js with /api/load & /api/save (data/storage.json), Passport Google OAuth 2.0 (/api/auth/google), nginx.conf, and setup-vps.sh (#8)."
     }
   ],
   "modules": []

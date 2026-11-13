@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link id="main-stylesheet" rel="stylesheet" href="./style.css?v=1.0.0" />
-  <link id="custom-stylesheet" rel="stylesheet" href="./custom.css?v=1.0.0" />
+  <link id="main-stylesheet" rel="stylesheet" href="./style.css?v=1.1.0" />
+  <link id="custom-stylesheet" rel="stylesheet" href="./custom.css?v=1.1.0" />
 </head>
 <body data-ui-rehaul="v1.0">
   <div id="gemini-app" class="gemini-app">
@@ -36,10 +36,13 @@
       </div>
 
       <div class="gemini-header-actions">
+        <span id="backend-status-pill" class="icon-btn" style="font-size:0.7rem;padding:0.28rem 0.55rem;opacity:0.85;" title="Storage Backend Mode">
+          API
+        </span>
         <button id="clear-chat-btn" class="icon-btn" type="button" title="New Chat">
           <span>New</span>
         </button>
-        <button id="open-settings-btn" class="icon-btn settings-pill" type="button" title="API Keys &amp; Antigravity Tool Settings">
+        <button id="open-settings-btn" class="icon-btn settings-pill" type="button" title="API Keys, Backend Storage &amp; Google OAuth">
           <span id="key-dot" class="key-dot"></span>
           <span>Keys</span>
         </button>
@@ -53,13 +56,13 @@
         <div class="welcome-sparkle">✦</div>
         <h1 class="welcome-heading">Hello, how can I help?</h1>
         <p class="welcome-subtext">
-          Chat directly with Gemini. When you want to modify or evolve this app, Gemini can invoke <code>call_antigravity</code> as a tool.
+          Chat directly with Gemini. Connected to <code>/api/load</code> &amp; <code>/api/save</code> storage with <code>call_antigravity</code> tool support.
         </p>
 
         <!-- Inline Quick Setup if Gemini Key is Missing -->
         <div id="missing-key-banner" class="missing-key-card hidden">
           <div class="missing-key-title">Paste your Gemini API Key to start chatting</div>
-          <p class="missing-key-desc">Stored locally in your iPhone's <code>localStorage</code>. Never sent anywhere except Google's Gemini API.</p>
+          <p class="missing-key-desc">Stored locally and synced with your backend when connected.</p>
           <div class="key-input-row">
             <input type="password" id="welcome-gemini-key" class="key-input" placeholder="AIzaSy..." autocomplete="off" />
             <button id="welcome-save-key-btn" class="save-btn" type="button">Start</button>
@@ -67,15 +70,15 @@
         </div>
 
         <div class="starter-chips">
-          <button type="button" class="starter-chip" data-prompt="Hey! What model are you running on, and what tools do you have access to?">
-            <span class="chip-title">Check model &amp; tools</span>
-            <span class="chip-sub">Ask Gemini directly</span>
+          <button type="button" class="starter-chip" data-prompt="Check our new Express backend (/api/load, /api/save) and Google OAuth setup.">
+            <span class="chip-title">Inspect VPS &amp; OAuth setup</span>
+            <span class="chip-sub">Ask Gemini about v1.1.0</span>
           </button>
-          <button type="button" class="starter-chip" data-prompt="Brainstorm 3 creative mini-apps we could turn this page into.">
+          <button type="button" class="starter-chip" data-prompt="Brainstorm 3 creative mini-apps we could build on top of /api/save.">
             <span class="chip-title">Brainstorm ideas</span>
             <span class="chip-sub">Pure Gemini chat</span>
           </button>
-          <button type="button" class="starter-chip" data-prompt="Use your Antigravity tool to add a sleek interactive audio synth widget to the app.">
+          <button type="button" class="starter-chip" data-prompt="Use your Antigravity tool to add a new feature to the app.">
             <span class="chip-title">Invoke Antigravity tool</span>
             <span class="chip-sub">Triggers call_antigravity()</span>
           </button>
@@ -85,7 +88,7 @@
       <!-- Conversation Thread -->
       <div id="messages-thread" class="messages-thread" role="log" aria-live="polite"></div>
 
-      <!-- Optional Live App Widget Container (when Gemini or Antigravity injects UI) -->
+      <!-- Optional Live App Widget Container -->
       <div id="live-widget-dock" class="live-widget-dock hidden"></div>
     </main>
 
@@ -107,20 +110,47 @@
         </button>
       </form>
       <div class="composer-footnote">
-        <span id="tool-status-label">Gemini direct chat • Antigravity tool enabled</span>
+        <span id="tool-status-label">Gemini direct chat • /api/save storage &amp; Antigravity tool enabled</span>
       </div>
     </footer>
 
-    <!-- Settings Sheet (API Keys & Tool Configuration) -->
+    <!-- Settings Sheet (API Keys, VPS Storage & Google OAuth) -->
     <aside id="settings-sheet" class="settings-sheet hidden" aria-label="Settings">
       <div class="sheet-backdrop" id="sheet-backdrop"></div>
-      <div class="sheet-panel">
+      <div class="sheet-panel" style="max-height:88dvh;overflow-y:auto;">
         <div class="sheet-header">
-          <h2>Keys &amp; Antigravity Tool</h2>
+          <h2>Keys, VPS Storage &amp; OAuth</h2>
           <button id="close-settings-btn" class="icon-btn" type="button">Done</button>
         </div>
 
         <div class="sheet-body">
+          <div class="setting-group">
+            <label>Google OAuth 2.0 Account (<code>/api/auth/google</code>)</label>
+            <p class="setting-hint" id="oauth-status-text">Checking Google OAuth session status...</p>
+            <div class="key-input-row">
+              <a
+                id="google-login-btn"
+                href="./api/auth/google"
+                class="save-btn"
+                style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;padding:0.55rem 1rem;width:100%;"
+              >
+                Sign in with Google
+              </a>
+            </div>
+          </div>
+
+          <div class="setting-group">
+            <label for="settings-vps-url">VPS Backend Storage (<code>/api/load</code> &amp; <code>/api/save</code>)</label>
+            <p class="setting-hint">
+              Leave blank when hosted directly on your Express/Nginx VPS (uses relative <code>./api/load</code> &amp; <code>./api/save</code>), or paste your VPS base URL.
+            </p>
+            <div class="key-input-row">
+              <input type="url" id="settings-vps-url" class="key-input" placeholder="Relative (./api) or https://your-vps.com" autocomplete="off" />
+              <button id="save-vps-btn" class="save-btn" type="button">Sync</button>
+            </div>
+            <div id="vps-status-msg" class="setting-status"></div>
+          </div>
+
           <div class="setting-group">
             <label for="settings-gemini-key">Gemini API Key (Primary Chat)</label>
             <p class="setting-hint">All messages go directly to Gemini using this key.</p>
@@ -133,7 +163,7 @@
 
           <div class="setting-group">
             <label for="settings-gh-token">GitHub Token (Used only by <code>call_antigravity</code> tool)</label>
-            <p class="setting-hint">Only used when Gemini decides to call the <code>call_antigravity</code> tool to edit the repo.</p>
+            <p class="setting-hint">Only used when Gemini decides to call the <code>call_antigravity</code> tool.</p>
             <div class="key-input-row">
               <input type="password" id="settings-gh-token" class="key-input" placeholder="ghp_... or github_pat_..." autocomplete="off" />
               <button id="save-gh-btn" class="save-btn" type="button">Save</button>
@@ -154,7 +184,7 @@
     </aside>
   </div>
 
-  <script src="./stage-custom.js?v=1.0.0"></script>
-  <script src="./app.js?v=1.0.0"></script>
+  <script src="./stage-custom.js?v=1.1.0"></script>
+  <script src="./app.js?v=1.1.0"></script>
 </body>
 </html>
