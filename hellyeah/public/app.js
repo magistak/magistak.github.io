@@ -308,12 +308,17 @@
           if (r.ok) {
             const remote = await r.json();
             if (remote && appState && (remote.evolutionCount || 0) > (appState.evolutionCount || 0)) {
+              const prevCodeVer = appState.codeVersion;
               try { localStorage.setItem('hellyeah_state', JSON.stringify(remote)); } catch (err) {}
+              if (remote.codeVersion && remote.codeVersion !== prevCodeVer) {
+                window.location.reload();
+                return;
+              }
               renderApp(remote);
             }
           }
         } catch (err) {}
-      }, 12000);
+      }, 6000);
     };
 
     try {
@@ -366,6 +371,7 @@
     const statusLabel = document.getElementById('status-label');
     const sendBtn = document.getElementById('send-prompt-btn');
     const sendBtnText = document.getElementById('send-btn-text');
+    const hasToken = Boolean(localStorage.getItem('hellyeah_gh_token'));
 
     if (state.agentStatus === 'evolving') {
       statusDot.className = 'status-dot evolving';
@@ -374,7 +380,7 @@
       sendBtnText.textContent = 'Mutating...';
     } else {
       statusDot.className = 'status-dot connected';
-      statusLabel.textContent = state.agentStatusText || 'Linked to Antigravity';
+      statusLabel.textContent = hasToken ? 'Antigravity Bridge (Auto)' : 'Antigravity Bridge';
       sendBtn.disabled = false;
       sendBtnText.textContent = 'Evolve App';
     }
@@ -395,8 +401,24 @@
         </div>
         <div class="bubble-body">${formatMarkdownLite(m.content)}</div>
         ${m.mutationBadge ? `<span class="mutation-pill">${escapeHTML(m.mutationBadge)}</span>` : ''}
+        ${m.bridgeDispatchUrl ? `
+          <div style="margin-top:0.55rem;display:flex;gap:0.45rem;flex-wrap:wrap;align-items:center;">
+            <a href="${escapeHTML(m.bridgeDispatchUrl)}" target="_blank" rel="noopener noreferrer" class="primary-pill-btn" style="text-decoration:none;font-size:0.72rem;padding:0.28rem 0.65rem;">
+              Transmit to Antigravity VM &nearr;
+            </a>
+            <button type="button" class="ghost-btn open-bridge-inline-btn" style="font-size:0.7rem;padding:0.24rem 0.55rem;">
+              Enable Silent Auto-Send
+            </button>
+          </div>
+        ` : ''}
       </article>
     `).join('');
+    container.querySelectorAll('.open-bridge-inline-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const modal = document.getElementById('bridge-modal');
+        if (modal) modal.classList.remove('hidden');
+      });
+    });
     container.scrollTop = container.scrollHeight;
   }
 
@@ -828,6 +850,40 @@
     }
   }
 
+  async function dispatchToGitHubBridge(promptText) {
+    const token = (localStorage.getItem('hellyeah_gh_token') || '').trim();
+    const issueTitle = '[hellyeah] ' + promptText.slice(0, 72);
+    const fallbackUrl =
+      'https://github.com/magistak/magistak.github.io/issues/new?title=' +
+      encodeURIComponent(issueTitle) +
+      '&body=' +
+      encodeURIComponent(promptText);
+
+    if (!token) {
+      return { sentSilently: false, fallbackUrl };
+    }
+
+    try {
+      const res = await fetch('https://api.github.com/repos/magistak/magistak.github.io/issues', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/vnd.github+json',
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          title: issueTitle,
+          body: promptText
+        })
+      });
+      if (!res.ok) throw new Error('GitHub API ' + res.status);
+      const data = await res.json();
+      return { sentSilently: true, issueNumber: data.number, issueUrl: data.html_url };
+    } catch (e) {
+      return { sentSilently: false, fallbackUrl };
+    }
+  }
+
   async function submitPrompt(promptText) {
     const input = document.getElementById('chat-input');
     if (input) input.value = '';
@@ -842,6 +898,17 @@
       if (data.state) renderApp(data.state);
     } catch (e) {
       const nextState = clientSynthesizeEvolution(promptText, appState);
+      const bridgeResult = await dispatchToGitHubBridge(promptText);
+      const lastMsg = nextState.messages[nextState.messages.length - 1];
+      if (lastMsg) {
+        if (bridgeResult.sentSilently) {
+          lastMsg.mutationBadge = `Dispatched to Antigravity VM (#${bridgeResult.issueNumber}) • Live`;
+          lastMsg.content += `\n\n**Antigravity Bridge:** Transmitted directly to Antigravity VM (\`#${bridgeResult.issueNumber}\`). Your iPhone will auto-update as soon as Antigravity pushes custom code.`;
+        } else {
+          lastMsg.bridgeDispatchUrl = bridgeResult.fallbackUrl;
+        }
+      }
+      try { localStorage.setItem('hellyeah_state', JSON.stringify(nextState)); } catch (err) {}
       renderApp(nextState);
     }
   }
@@ -863,11 +930,26 @@
     }
   }
 
+  function refreshBridgeTokenStatus() {
+    const statusEl = document.getElementById('gh-token-status');
+    const tokenInput = document.getElementById('gh-token-input');
+    const saved = localStorage.getItem('hellyeah_gh_token') || '';
+    if (statusEl) {
+      statusEl.textContent = saved
+        ? '✓ Silent Auto-Send Active (Token saved in iPhone localStorage)'
+        : 'No token saved yet (using 1-Tap Dispatch mode)';
+    }
+    if (tokenInput && saved) {
+      tokenInput.value = saved;
+    }
+  }
+
   // Wire global UI events
   document.addEventListener('DOMContentLoaded', () => {
     fetchInitialState();
     fetchWorkspaceFiles();
     setupSSE();
+    refreshBridgeTokenStatus();
 
     const chatForm = document.getElementById('chat-form');
     const chatInput = document.getElementById('chat-input');
@@ -901,6 +983,35 @@
     document.getElementById('close-inspector-btn').addEventListener('click', () => {
       document.getElementById('inspector-drawer').classList.add('hidden');
     });
+
+    const openBridgeBtn = document.getElementById('open-bridge-btn');
+    if (openBridgeBtn) {
+      openBridgeBtn.addEventListener('click', () => {
+        refreshBridgeTokenStatus();
+        document.getElementById('bridge-modal').classList.remove('hidden');
+      });
+    }
+
+    const closeBridgeBtn = document.getElementById('close-bridge-btn');
+    if (closeBridgeBtn) {
+      closeBridgeBtn.addEventListener('click', () => {
+        document.getElementById('bridge-modal').classList.add('hidden');
+      });
+    }
+
+    const saveTokenBtn = document.getElementById('save-gh-token-btn');
+    if (saveTokenBtn) {
+      saveTokenBtn.addEventListener('click', () => {
+        const val = (document.getElementById('gh-token-input').value || '').trim();
+        if (val) {
+          localStorage.setItem('hellyeah_gh_token', val);
+        } else {
+          localStorage.removeItem('hellyeah_gh_token');
+        }
+        refreshBridgeTokenStatus();
+        if (appState) renderApp(appState);
+      });
+    }
 
     document.getElementById('reset-stage-btn').addEventListener('click', () => {
       submitPrompt('Reset the stage back to the Genesis slate.');

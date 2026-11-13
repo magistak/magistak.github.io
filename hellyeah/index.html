@@ -134,6 +134,59 @@
         </section>
       </div>
     </aside>
+
+    <!-- GitHub Bridge Modal for iPhone -> Antigravity VM Direct Link -->
+    <aside id="bridge-modal" class="inspector-drawer hidden" aria-label="Antigravity GitHub Bridge Settings">
+      <div class="drawer-header">
+        <div>
+          <span class="section-eyebrow">IPHONE &rarr; ANTIGRAVITY VM BRIDGE</span>
+          <h2 class="drawer-title">Live GitHub Bridge Settings</h2>
+        </div>
+        <button id="close-bridge-btn" class="ghost-btn" type="button">Close</button>
+      </div>
+
+      <div class="drawer-content">
+        <section class="drawer-section">
+          <h3 class="drawer-subtitle">How the iPhone Bridge Works</h3>
+          <p style="font-size:0.84rem;color:var(--text-secondary);margin-bottom:0.85rem;">
+            When you type in the chat on <code>magistak.github.io/hellyeah</code>, your prompt is sent to <code>magistak/magistak.github.io</code> where Antigravity's live watcher picks it up, rewrites the app's source code, and pushes the update back to your iPhone.
+          </p>
+
+          <div class="arch-item" style="margin-bottom:1rem;">
+            <strong>Mode 1: Silent Background Auto-Send (Recommended)</strong>
+            <span style="display:block;margin:0.35rem 0 0.65rem;">
+              Save a GitHub token locally on your iPhone (stored <em>only</em> in your iPhone's <code>localStorage</code>, never uploaded). Every chat message will automatically dispatch to Antigravity in the background.
+            </span>
+            <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap;">
+              <a
+                href="https://github.com/settings/tokens/new?description=hellyeah-iphone-bridge&scopes=public_repo"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="ghost-btn"
+                style="text-decoration:none;display:inline-block;"
+              >1. Generate Token on GitHub &nearr;</a>
+            </div>
+            <div class="task-add-row">
+              <input
+                type="password"
+                id="gh-token-input"
+                class="stage-text-input"
+                placeholder="Paste ghp_... or github_pat_... token here"
+              />
+              <button id="save-gh-token-btn" class="primary-pill-btn" type="button">Save on iPhone</button>
+            </div>
+            <span id="gh-token-status" class="mono-tag subtle" style="display:inline-block;margin-top:0.5rem;">No token saved yet (using 1-Tap Dispatch mode)</span>
+          </div>
+
+          <div class="arch-item">
+            <strong>Mode 2: Zero-Token 1-Tap Dispatch (Works Immediately)</strong>
+            <span>
+              Even without saving a token, every chat message you send on your iPhone includes a <strong>"Send to Antigravity VM &nearr;"</strong> button that dispatches your prompt to Antigravity in one tap using your existing GitHub login in Safari.
+            </span>
+          </div>
+        </section>
+      </div>
+    </aside>
   </div>
 
   <script src="./app.js"></script>
